@@ -85,6 +85,23 @@ a:hover{color:var(--st4);text-decoration:underline}
 .sp-apply:hover{background:var(--st1);filter:brightness(1.08)}
 .sp-reset{color:var(--bad);font-size:12.5px;margin-top:2px}
 .sp-reset:hover{background:rgba(232,118,90,.1)}
+.auth-gate{position:fixed;inset:0;z-index:200;background:var(--ink);display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line2);border-radius:18px;box-shadow:var(--shadow);padding:32px 30px}
+.auth-logo{font-family:"Space Grotesk";font-weight:700;font-size:22px;letter-spacing:-.02em;color:var(--st3)}
+.auth-card h2{margin:18px 0 4px;font-size:20px;font-weight:700}
+.auth-sub{color:var(--muted);font-size:13.5px;margin:0 0 20px}
+.auth-card input{width:100%;background:var(--ink2);border:1px solid var(--line);color:var(--text);border-radius:11px;padding:12px 14px;font-size:14px;font-family:inherit;margin-bottom:11px;box-sizing:border-box}
+.auth-card input:focus{outline:none;border-color:var(--st2)}
+.auth-card button{width:100%;background:var(--st1);color:#fff;border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px}
+.auth-card button:hover{filter:brightness(1.08)}
+.auth-card button:disabled{opacity:.6;cursor:default}
+.auth-err{color:var(--bad);font-size:12.5px;margin-top:10px;min-height:16px}
+.auth-foot{color:var(--faint);font-size:11.5px;margin-top:16px;line-height:1.5}
+.acct-info{padding:2px 10px 9px}
+.acct-email{font-size:13px;font-weight:600;word-break:break-all}
+.acct-role{font-size:11.5px;color:var(--muted);margin-top:2px}
+body.viewer tbody tr{cursor:default}
+body.viewer tbody tr:hover{background:transparent}
 .recent{margin-top:6px;display:flex;flex-direction:column}
 .rec-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
 .rec-row:last-child{border-bottom:none}
@@ -284,6 +301,7 @@ footer{margin-top:30px;color:var(--faint);font-size:12px;text-align:center;line-
 .check{display:flex;align-items:center;gap:9px;background:var(--ink2);border:1px solid var(--line);padding:11px 13px;border-radius:11px;cursor:pointer;font-size:14px}
 .check input{width:auto}
 .price-preview{margin-top:6px;background:#0c0c1f;border:1px solid var(--line2);border-radius:14px;padding:16px 18px}
+[data-theme="light"] .price-preview{background:var(--panel2);border-color:var(--line)}
 .pp-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:3px 0}
 .pp-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;padding-top:11px;border-top:1px solid var(--line)}
 .pp-total .lab{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
@@ -308,6 +326,18 @@ footer{margin-top:30px;color:var(--faint);font-size:12px;text-align:center;line-
 </style>
 </head>
 <body>
+<div class="auth-gate" id="authGate" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">StreetTalk</div>
+    <h2>Sign in</h2>
+    <p class="auth-sub">PrizePicks engagement dashboard</p>
+    <input id="authEmail" type="email" placeholder="you@company.com" autocomplete="username" autocapitalize="off" spellcheck="false">
+    <input id="authPass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="authBtn">Sign in</button>
+    <div class="auth-err" id="authErr"></div>
+    <div class="auth-foot">Access is by invitation only. Contact your StreetTalk admin if you need an account.</div>
+  </div>
+</div>
 <header class="topbar">
   <div class="topbar-inner">
     <div class="lockup">
@@ -366,6 +396,11 @@ footer{margin-top:30px;color:var(--faint);font-size:12px;text-align:center;line-
           <div class="sp-lab">Data</div>
           <button class="sp-btn" id="connectBtn">Connect a shared database…</button>
           <button class="sp-btn sp-reset" id="resetBtn">Reset customizations</button>
+        </div>
+        <div class="sp-sec sp-last" id="acctSec" style="display:none">
+          <div class="sp-lab">Account</div>
+          <div class="acct-info"><div class="acct-email" id="acctEmail"></div><div class="acct-role" id="acctRole"></div></div>
+          <button class="sp-btn sp-reset" id="signOutBtn">Sign out</button>
         </div>
       </div>
     </div>
@@ -568,7 +603,7 @@ footer{margin-top:30px;color:var(--faint);font-size:12px;text-align:center;line-
 
 <script>
 /* ===== 1) CONFIG ===== */
-const SUPABASE = { url:"https://qnpnmryrrmijruzoviwp.supabase.co", anon:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucG5tcnlycm1panJ1em92aXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjkyOTEsImV4cCI6MjA5NjcwNTI5MX0.vMvIEjk5W4kqIYI7vJLz_FZ7SN93FcQsNrgVdYB9sY4" };   // paste to go live & shared
+const SUPABASE = { url:"", anon:"" };   // paste to go live & shared
 let ANNUAL_BUDGET = 375000;   // total contract budget (editable in Settings)
 let badgeMode = "auto";       // auto | live | hide
 let liveState = false;
@@ -630,34 +665,80 @@ const SEED=[
 ];
 
 /* ===== 4) DATA LAYER ===== */
-const LIVE=!!(SUPABASE.url&&SUPABASE.anon); let sb=null,state=[];
+const LIVE=!!(SUPABASE.url&&SUPABASE.anon); let sb=null,state=[],USER=null,ROLE="viewer",curUid;
+function canEdit(){return !LIVE || ROLE==="editor";}
+async function getClient(){
+  if(sb) return sb;
+  const {createClient}=await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm");
+  sb=createClient(SUPABASE.url,SUPABASE.anon,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"st-pp-auth"}});
+  return sb;
+}
 async function loadData(){
   if(LIVE){
-    const {createClient}=await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm");
-    sb=createClient(SUPABASE.url,SUPABASE.anon);
-    const {data,error}=await sb.from("projects").select("*").order("sort_order",{ascending:true});
+    const c=await getClient();
+    const {data,error}=await c.from("projects").select("*").order("sort_order",{ascending:true}).order("created_at",{ascending:true});
     state=error?[]:data.map(fromRow); setLive(!error);
   } else { state=SEED.map((s,i)=>({id:"seed-"+i,sort_order:i,...s})); setLive(false); }
 }
 function fromRow(r){return{id:r.id,sort_order:r.sort_order,title:r.title,type:r.type,status:r.status,assets:r.assets,travelDays:r.travel_days,travelCosts:r.travel_costs,hookVariations:r.hook_variations,rush:r.rush,mashups:r.mashups,resizes:r.resizes,whitelistHandles:r.whitelist_handles,whitelistMonths:r.whitelist_months,brief_link:r.brief_link,frame_link:r.frame_link,notes:r.notes,completion_date:r.completion_date};}
 function toRow(p){return{title:p.title,type:p.type,status:p.status,assets:+p.assets||0,travel_days:+p.travelDays||0,travel_costs:+p.travelCosts||0,hook_variations:+p.hookVariations||0,rush:!!p.rush,mashups:+p.mashups||0,resizes:+p.resizes||0,whitelist_handles:+p.whitelistHandles||0,whitelist_months:+p.whitelistMonths||0,total_price:priceOf(p),brief_link:p.brief_link||null,frame_link:p.frame_link||null,notes:p.notes||null,completion_date:p.completion_date||null};}
 async function saveItem(p){
-  if(LIVE){ if(p.id&&!String(p.id).startsWith("seed-")){await sb.from("projects").update(toRow(p)).eq("id",p.id);} else {const {data}=await sb.from("projects").insert(toRow(p)).select(); if(data&&data[0])p.id=data[0].id;} await loadData(); }
-  else { if(p.id){const i=state.findIndex(x=>x.id===p.id); if(i>=0)state[i]={...state[i],...p};} else {p.id="seed-"+Date.now(); state.push(p);} }
+  if(LIVE){
+    const c=await getClient(); let res;
+    if(p.id&&!String(p.id).startsWith("seed-")){res=await c.from("projects").update(toRow(p)).eq("id",p.id);}
+    else {res=await c.from("projects").insert(toRow(p)).select(); if(res.data&&res.data[0])p.id=res.data[0].id;}
+    if(res.error){alert("Couldn't save — "+(res.error.message||"you may not have edit access."));return;}
+    await loadData();
+  } else { if(p.id){const i=state.findIndex(x=>x.id===p.id); if(i>=0)state[i]={...state[i],...p};} else {p.id="seed-"+Date.now(); state.push(p);} }
   renderAll();
 }
-async function deleteItem(id){ if(LIVE&&id&&!String(id).startsWith("seed-")){await sb.from("projects").delete().eq("id",id); await loadData();} else state=state.filter(x=>x.id!==id); renderAll(); }
+async function deleteItem(id){
+  if(LIVE&&id&&!String(id).startsWith("seed-")){const c=await getClient();const {error}=await c.from("projects").delete().eq("id",id);
+    if(error){alert("Couldn't delete — "+(error.message||"you may not have edit access."));return;} await loadData();}
+  else state=state.filter(x=>x.id!==id);
+  renderAll();
+}
+/* ---- auth ---- */
+async function fetchRole(){try{const c=await getClient();const {data}=await c.from("profiles").select("role").eq("id",USER.id).maybeSingle();ROLE=(data&&data.role)||"viewer";}catch(e){ROLE="viewer";}}
+function applyRole(){const ed=canEdit();const ab=document.getElementById("addBtn");if(ab)ab.style.display=ed?"":"none";document.body.classList.toggle("viewer",!ed);}
+function authErr(m){const e=document.getElementById("authErr");if(e)e.textContent=m||"";}
+function showGate(){const g=document.getElementById("authGate");if(g)g.style.display="flex";}
+function hideGate(){const g=document.getElementById("authGate");if(g)g.style.display="none";}
+function setAccountUI(){const sec=document.getElementById("acctSec");if(!sec)return;
+  if(LIVE&&USER){sec.style.display="";document.getElementById("acctEmail").textContent=USER.email||"";document.getElementById("acctRole").textContent=canEdit()?"Editor — can add & edit":"Viewer — read-only";}
+  else sec.style.display="none";}
+async function doLogin(){
+  const email=(document.getElementById("authEmail").value||"").trim(), pass=document.getElementById("authPass").value||"";
+  if(!email||!pass){authErr("Enter your email and password.");return;}
+  const btn=document.getElementById("authBtn");btn.disabled=true;btn.textContent="Signing in…";authErr("");
+  try{const c=await getClient();const {error}=await c.auth.signInWithPassword({email,password:pass});if(error)authErr(error.message||"Sign-in failed.");}
+  catch(e){authErr("Couldn't reach the sign-in service. Check your connection and try again.");}
+  btn.disabled=false;btn.textContent="Sign in";
+}
+async function signOut(){try{const c=await getClient();await c.auth.signOut();}catch(e){}}
+let booted=false;
+async function handleAuth(session){
+  if(!LIVE)return;
+  const uid=session&&session.user?session.user.id:null;
+  if(uid){
+    if(curUid===uid){return;} curUid=uid; USER=session.user;
+    await fetchRole(); applyRole(); hideGate(); setAccountUI();
+    syncContractInputs(); await loadData(); renderAll();
+    if(!booted){booted=true;const ch=await resolveNow();if(ch)renderAll();}
+  } else { curUid=null; USER=null; ROLE="viewer"; state=[]; setAccountUI(); showGate(); }
+}
 function renderBadge(){
-  const el=document.getElementById("dataBadge"); if(!el)return;
+  const el=document.getElementById("dataBadge"), fn=document.getElementById("footNote");
   const showLive = badgeMode==="live" || (badgeMode==="auto" && liveState);
-  if(badgeMode==="hide"){el.style.display="none";return;}
-  el.style.display="";
-  el.innerHTML=`<span class="dot ${showLive?"live":""}"></span>${showLive?"Live · shared":"Demo data"}`;
+  const sharedMsg="Edits are saved and shared with all stakeholders.";
+  const demoMsg="Running on demo data — connect a shared database (⚙) to make edits permanent and shared.";
+  if(el){
+    if(badgeMode==="hide"){el.style.display="none";}
+    else{el.style.display="";el.innerHTML=`<span class="dot ${showLive?"live":""}"></span>${showLive?"Live · shared":"Demo data"}`;}
+  }
+  if(fn) fn.textContent = (badgeMode==="hide") ? (liveState?sharedMsg:"") : (showLive?sharedMsg:demoMsg);
 }
-function setLive(live){
-  liveState=live; renderBadge();
-  document.getElementById("footNote").textContent=live?"Connected to Supabase — edits are saved and shared with all stakeholders.":"Running on demo data — connect Supabase (⚙) to make edits permanent and shared.";
-}
+function setLive(live){ liveState=live; renderBadge(); }
 
 /* ===== 5) RENDER ===== */
 const fmt=n=>"$"+Math.round(n).toLocaleString("en-US");
@@ -788,7 +869,7 @@ function renderTable(){
       +(p.frame_link?`<a class="lchip" href="${esc(p.frame_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Frame ↗</a>`:"")
       +((!p.brief_link&&!p.frame_link)?'<span class="muted-cell">—</span>':"");
     const tr=document.createElement("tr");
-    tr.onclick=e=>{if(e.target.closest(".mini")||e.target.closest("a"))return;openEdit(p);};
+    tr.onclick=e=>{if(!canEdit())return;if(e.target.closest(".mini")||e.target.closest("a"))return;openEdit(p);};
     tr.innerHTML=`
       <td class="li-cell" style="box-shadow:inset 3px 0 0 ${CAT_COLOR[p.type]}"><div class="t-title">${esc(p.title)}</div><div class="t-meta">${meta}</div></td>
       <td><span class="status ${p.status}"><span class="sdot"></span>${statusLabel(p.status)}</span></td>
@@ -796,7 +877,7 @@ function renderTable(){
       <td class="r"><div class="t-val"><span class="total">${fmt(total)}</span><span class="t-share">${shareTxt}</span></div></td>
       <td><div class="links">${links}</div></td>
       <td class="muted-cell num">${p.completion_date?fmtDate(new Date(p.completion_date+"T00:00:00")):"—"}</td>
-      <td class="r"><span class="row-actions"><button class="mini" title="Delete" onclick="event.stopPropagation();confirmDel('${p.id}')">🗑</button></span></td>`;
+      ${canEdit()?`<td class="r"><span class="row-actions"><button class="mini" title="Delete" onclick="event.stopPropagation();confirmDel('${p.id}')">🗑</button></span></td>`:'<td></td>'}`;
     tb.appendChild(tr);
   }
   if(tf){const sum=rows.reduce((s,p)=>s+priceOf(p),0);
@@ -1030,10 +1111,49 @@ $("resetBtn").onclick=()=>{
   ["st_theme","st_contract","st_budget","st_badge","st_client","st_logo"].forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});
   location.reload();
 };
+$("authBtn").onclick=doLogin;
+$("authPass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+$("authEmail").addEventListener("keydown",e=>{if(e.key==="Enter")$("authPass").focus();});
+$("signOutBtn").onclick=signOut;
 
 const RC=[["Street Interview Ad","$500 / asset","5 asset min per angle · 4 solo + 1 mashup"],["Podcast Ad","$500 / asset","5 asset min per shoot"],["UGC Ad","$500 / asset","3 asset min per creator"],["Travel Fee","$2,500 / person / day","+ pre-approved flights & hotels"],["Hook / CTA Variations","$200 / variation","per set of 5 assets"],["Rush Fee","$2,000","2-week push (timely approvals)"],["Additional Mashups / Edits","$250 / mashup","with existing content"],["Resize Requests","$250 total","9x16, 16x9, 1x1, 4x5, 1.91x1, 2x3"],["Creator Whitelisting","$2,000 / mo / handle","assuming creator approval"]];
 document.getElementById("rcBody").innerHTML=RC.map(([n,p,note])=>`<div class="rc-item"><div><div class="rc-name">${n}</div><div class="rc-note">${note}</div></div><div class="rc-price">${p}</div></div>`).join("");
-document.getElementById("sqlBlock").textContent=`create table projects (
+document.getElementById("sqlBlock").textContent=`-- Run in Supabase → SQL Editor (full guide provided separately)
+create table if not exists public.projects (
+  id uuid primary key default gen_random_uuid(),
+  sort_order int default 0,
+  title text not null, type text not null, status text not null default 'planned',
+  assets int default 0, travel_days int default 0, travel_costs numeric default 0,
+  hook_variations int default 0, rush boolean default false,
+  mashups int default 0, resizes int default 0,
+  whitelist_handles int default 0, whitelist_months int default 0,
+  total_price numeric default 0,
+  brief_link text, frame_link text, notes text, completion_date date,
+  created_at timestamptz default now(), updated_at timestamptz default now(),
+  updated_by uuid references auth.users(id)
+);
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text, role text not null default 'viewer' check (role in ('editor','viewer'))
+);
+create or replace function public.handle_new_user() returns trigger
+  language plpgsql security definer set search_path=public as $$
+  begin insert into public.profiles(id,email,role) values(new.id,new.email,'viewer')
+    on conflict (id) do nothing; return new; end; $$;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users
+  for each row execute function public.handle_new_user();
+create or replace function public.is_editor() returns boolean
+  language sql stable security definer set search_path=public as $$
+  select exists(select 1 from public.profiles where id=auth.uid() and role='editor'); $$;
+alter table public.projects enable row level security;
+alter table public.profiles enable row level security;
+create policy "read projects" on public.projects for select to authenticated using (true);
+create policy "insert projects" on public.projects for insert to authenticated with check (public.is_editor());
+create policy "update projects" on public.projects for update to authenticated using (public.is_editor()) with check (public.is_editor());
+create policy "delete projects" on public.projects for delete to authenticated using (public.is_editor());
+create policy "read own profile" on public.profiles for select to authenticated using (id = auth.uid());`;
+const OLD_SQL_UNUSED=`create table projects (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz default now(),
   sort_order int default 0,
@@ -1059,7 +1179,7 @@ create policy "write" on projects for insert with check (true);
 create policy "edit"  on projects for update using (true);
 create policy "del"   on projects for delete using (true);`;
 
-(async function(){
+function loadPrefs(){
   let saved=null; try{saved=localStorage.getItem("st_theme");}catch(e){}
   applyTheme(saved==="light"||saved==="dark"?saved:"dark");   // dark default; remembers choice
   try{const c=JSON.parse(localStorage.getItem("st_contract")||"null"); if(c&&c.s&&c.e){CONTRACT_START=c.s;CONTRACT_END=c.e;setupContract();}}catch(e){}
@@ -1067,9 +1187,18 @@ create policy "del"   on projects for delete using (true);`;
   try{const bm=localStorage.getItem("st_badge"); if(bm==="auto"||bm==="live"||bm==="hide")badgeMode=bm;}catch(e){}
   try{const cn=localStorage.getItem("st_client"); if(cn)CLIENT_NAME=cn;}catch(e){}
   try{const lg=localStorage.getItem("st_logo"); if(lg)applyClientLogo(lg);}catch(e){}
-  syncContractInputs();
-  await loadData();renderAll();
-  const changed=await resolveNow();if(changed)renderAll();
+  syncContractInputs(); setAccountUI();
+}
+(async function(){
+  loadPrefs();
+  if(!LIVE){ await loadData(); renderAll(); const ch=await resolveNow(); if(ch)renderAll(); return; }
+  showGate();
+  try{
+    const c=await getClient();
+    c.auth.onAuthStateChange((_e,session)=>handleAuth(session));
+    const {data:{session}}=await c.auth.getSession();
+    handleAuth(session);
+  }catch(e){ authErr("Couldn't reach the sign-in service. Check your connection and refresh."); }
 })();
 </script>
 </body>
