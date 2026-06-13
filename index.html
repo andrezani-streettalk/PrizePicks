@@ -93,6 +93,12 @@ a:hover{color:var(--st4);text-decoration:underline}
 .auth-card input{width:100%;background:var(--ink2);border:1px solid var(--line);color:var(--text);border-radius:11px;padding:12px 14px;font-size:14px;font-family:inherit;margin-bottom:11px;box-sizing:border-box}
 .auth-card input:focus{outline:none;border-color:var(--st2)}
 .auth-card button{width:100%;background:var(--st1);color:#fff;border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px}
+.auth-or{display:flex;align-items:center;text-align:center;color:var(--faint);font-size:11.5px;margin:14px 0 4px}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.auth-or span{padding:0 12px}
+.auth-google{background:#fff!important;color:#1f1f1f!important;border:1px solid var(--line)!important;display:flex;align-items:center;justify-content:center;gap:10px}
+.auth-google:hover{filter:brightness(.97)}
+[data-theme="light"] .auth-google{border-color:#d0d0e0!important}
 .auth-card button:hover{filter:brightness(1.08)}
 .auth-card button:disabled{opacity:.6;cursor:default}
 .auth-err{color:var(--bad);font-size:12.5px;margin-top:10px;min-height:16px}
@@ -334,6 +340,11 @@ footer{margin-top:30px;color:var(--faint);font-size:12px;text-align:center;line-
     <input id="authEmail" type="email" placeholder="you@company.com" autocomplete="username" autocapitalize="off" spellcheck="false">
     <input id="authPass" type="password" placeholder="Password" autocomplete="current-password">
     <button id="authBtn">Sign in</button>
+    <div class="auth-or"><span>or</span></div>
+    <button id="authGoogle" class="auth-google" type="button">
+      <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 4.7 29.6 2.6 24 2.6 12.2 2.6 2.6 12.2 2.6 24S12.2 45.4 24 45.4 45.4 35.8 45.4 24c0-1.2-.1-2.3-.3-3.5z"/><path fill="#FF3D00" d="M5.3 13.7l6.6 4.8C13.6 14.5 18.4 11 24 11c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 4.7 29.6 2.6 24 2.6 16 2.6 9.1 7.1 5.3 13.7z"/><path fill="#4CAF50" d="M24 45.4c5.5 0 10.4-2.1 14.1-5.5l-6.5-5.5c-2.1 1.5-4.8 2.4-7.6 2.4-5.2 0-9.6-3.3-11.2-8l-6.5 5C9 40.8 15.9 45.4 24 45.4z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l6.5 5.5c-.5.4 6.9-5 6.9-14.9 0-1.2-.1-2.3-.3-3.5z"/></svg>
+      Continue with Google
+    </button>
     <div class="auth-err" id="authErr"></div>
     <div class="auth-foot">Access is by invitation only. Contact your StreetTalk admin if you need an account.</div>
   </div>
@@ -716,6 +727,11 @@ async function doLogin(){
   btn.disabled=false;btn.textContent="Sign in";
 }
 async function signOut(){try{const c=await getClient();await c.auth.signOut();}catch(e){}}
+async function doGoogle(){
+  authErr("");
+  try{const c=await getClient();const {error}=await c.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(error)authErr(error.message||"Google sign-in failed.");}
+  catch(e){authErr("Couldn't start Google sign-in. Try again.");}
+}
 let booted=false;
 async function handleAuth(session){
   if(!LIVE)return;
@@ -1112,6 +1128,7 @@ $("resetBtn").onclick=()=>{
   location.reload();
 };
 $("authBtn").onclick=doLogin;
+$("authGoogle").onclick=doGoogle;
 $("authPass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
 $("authEmail").addEventListener("keydown",e=>{if(e.key==="Enter")$("authPass").focus();});
 $("signOutBtn").onclick=signOut;
@@ -1195,9 +1212,11 @@ function loadPrefs(){
   showGate();
   try{
     const c=await getClient();
-    c.auth.onAuthStateChange((_e,session)=>handleAuth(session));
-    const {data:{session}}=await c.auth.getSession();
-    handleAuth(session);
+    // Defer handleAuth to a later tick so Supabase's internal auth lock is released
+    // before we make any further Supabase calls. Running them inside the callback
+    // deadlocks on the session-restore (refresh) path. INITIAL_SESSION delivers the
+    // current session (or null) right after subscribing, so no getSession() needed.
+    c.auth.onAuthStateChange((_e,session)=>{ setTimeout(()=>handleAuth(session),0); });
   }catch(e){ authErr("Couldn't reach the sign-in service. Check your connection and refresh."); }
 })();
 </script>
