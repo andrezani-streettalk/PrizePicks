@@ -724,6 +724,7 @@ let CONTRACT_END   = "2027-03-31"; // contract end   (YYYY-MM-DD)
 let RATE = { perAsset:500, minAssets:{street_interview:5,podcast:5,ugc:3,editing:0},
   hookPerVariationPerSet:200, setSize:5, travelPerPersonDay:2500, rush:2000, mashup:250, resize:250, whitelistPerHandlePerMonth:2000 };
 let rateExtras = [];   // editor-added reference-only rows: {name, price, note}
+let clientLogo = null; // current client logo (data URL or null) — for shared DB save
 const CATEGORY_LABEL={street_interview:"Street Interview Ad",podcast:"Podcast Ad",ugc:"UGC Ad",editing:"Editing / Variations"};
 const CAT_COLOR={street_interview:"#4242D7",podcast:"#6B6BE0",ugc:"#9696E9",editing:"#C0C0F2"};
 const STATUS_COLOR={planned:"#C0C0F2",shooting:"#9696E9",editing:"#6B6BE0",completed:"#4242D7"};
@@ -836,7 +837,7 @@ async function handleAuth(session){
   if(uid){
     if(curUid===uid){return;} curUid=uid; USER=session.user;
     await fetchRole(); applyRole(); hideGate(); setAccountUI();
-    syncContractInputs(); await loadData(); renderAll();
+    syncContractInputs(); await loadData(); await loadSettings(); renderAll();
     if(!booted){booted=true;const ch=await resolveNow();if(ch)renderAll();}
   } else { curUid=null; USER=null; ROLE="viewer"; state=[]; setAccountUI(); showGate(); }
 }
@@ -968,7 +969,7 @@ function renderTable(){
   else if(sb==="assets") rows=[...rows].sort((a,b)=>(+b.assets||0)-(+a.assets||0));
   const tf=document.getElementById("tfoot");
   if(!rows.length){
-    tb.innerHTML=`<tr><td colspan="7" class="muted-cell" style="text-align:center;padding:34px">No line items match — try clearing the search or filter, or add one with “+ Add line item”.</td></tr>`;
+    tb.innerHTML=`<tr><td colspan="7" class="muted-cell" style="text-align:center;padding:34px">No line items match — try clearing the search or filter${canEdit()?', or add one with the “+ Add line item” button':''}.</td></tr>`;
     if(tf) tf.innerHTML=""; return;
   }
   for(const p of rows){
@@ -1164,15 +1165,61 @@ $("paceAlertX").onclick=()=>{paceAlertDismissed=true;$("paceAlert").style.displa
 
 /* ----- contract term editor ----- */
 function syncContractInputs(){$("cStartIn").value=CONTRACT_START;$("cEndIn").value=CONTRACT_END;$("budgetIn").value=ANNUAL_BUDGET;$("clientIn").value=CLIENT_NAME;document.querySelectorAll("#badgeSeg .seg-btn").forEach(b=>b.classList.toggle("active",b.dataset.badge===badgeMode));}
+
+/* ===== shared settings (budget, contract, client, logo, rate) ===== */
+/* LIVE: stored in the app_settings table so every stakeholder sees the same values.
+   DEMO (no Supabase): falls back to this browser's localStorage. */
+async function loadSettings(){
+  if(!LIVE) return;
+  try{
+    const c=await getClient();
+    const {data,error}=await c.from("app_settings").select("*").eq("id",1).maybeSingle();
+    if(error||!data) return;
+    if(data.budget!=null && +data.budget>0) ANNUAL_BUDGET=+data.budget;
+    if(data.contract_start) CONTRACT_START=data.contract_start;
+    if(data.contract_end) CONTRACT_END=data.contract_end;
+    if(data.client_name) CLIENT_NAME=data.client_name;
+    if(data.rate){
+      const r=data.rate.values||data.rate;
+      if(r&&typeof r==="object") RATE={...RATE,...r,minAssets:{...RATE.minAssets,...(r.minAssets||{})}};
+      if(Array.isArray(data.rate.extras)) rateExtras=data.rate.extras;
+    }
+    applyClientLogo(data.logo||null);
+    setupContract(); refreshRateUI(); syncContractInputs();
+  }catch(e){ /* offline / table missing — keep defaults */ }
+}
+async function saveSettings(){
+  if(!LIVE) return;
+  try{
+    const c=await getClient();
+    const row={id:1, budget:ANNUAL_BUDGET, contract_start:CONTRACT_START, contract_end:CONTRACT_END,
+      client_name:CLIENT_NAME, logo:clientLogo||null, rate:{values:RATE, extras:rateExtras},
+      updated_at:new Date().toISOString(), updated_by:(USER&&USER.id)||null};
+    const {error}=await c.from("app_settings").upsert(row);
+    if(error) alert("Couldn't save to the shared settings.\n\n"+(error.message||"You may not have editor access."));
+  }catch(e){ alert("Couldn't reach the database to save these settings. Check your connection and try again."); }
+}
+function persistShared(){
+  if(LIVE){ saveSettings(); return; }
+  try{
+    localStorage.setItem("st_budget",String(ANNUAL_BUDGET));
+    localStorage.setItem("st_contract",JSON.stringify({s:CONTRACT_START,e:CONTRACT_END}));
+    localStorage.setItem("st_client",CLIENT_NAME);
+    if(clientLogo) localStorage.setItem("st_logo",clientLogo); else localStorage.removeItem("st_logo");
+    localStorage.setItem("st_rate",JSON.stringify(RATE));
+    localStorage.setItem("st_rate_extras",JSON.stringify(rateExtras));
+  }catch(_){}
+}
 $("applyClient").onclick=()=>{
   const v=$("clientIn").value.trim()||"PrizePicks";
-  CLIENT_NAME=v; try{localStorage.setItem("st_client",v);}catch(_){}
+  CLIENT_NAME=v; persistShared();
   renderAll(); sPanel.classList.remove("open");
 };
 /* ----- client logo ----- */
 const DEFAULT_PP_SRC=(document.getElementById("ppLogo")||{}).src||"";
 function applyClientLogo(src){
   const img=document.getElementById("ppLogo"); if(!img)return;
+  clientLogo = src || null;
   if(src){img.src=src;img.classList.add("custom-logo");}
   else{img.src=DEFAULT_PP_SRC;img.classList.remove("custom-logo");}
 }
@@ -1193,22 +1240,21 @@ $("logoBtn").onclick=()=>$("logoFile").click();
 $("logoFile").onchange=e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value="";
   if(!f)return;
-  readLogo(f,src=>{try{localStorage.setItem("st_logo",src);}catch(_){alert("That image is a bit large to save in this browser — it will show for now but won't persist on reload.");}
-    applyClientLogo(src); sPanel.classList.remove("open");});
+  readLogo(f,src=>{ applyClientLogo(src); persistShared(); sPanel.classList.remove("open"); });
 };
-$("logoResetBtn").onclick=()=>{try{localStorage.removeItem("st_logo");}catch(_){}applyClientLogo(null);sPanel.classList.remove("open");};
+$("logoResetBtn").onclick=()=>{applyClientLogo(null);persistShared();sPanel.classList.remove("open");};
 $("applyContract").onclick=()=>{
   const s=$("cStartIn").value,e=$("cEndIn").value;
   if(!s||!e){alert("Please set both a start and end date.");return;}
   if(new Date(e+"T00:00:00")<=new Date(s+"T00:00:00")){alert("The end date must be after the start date.");return;}
   CONTRACT_START=s;CONTRACT_END=e;setupContract();
-  try{localStorage.setItem("st_contract",JSON.stringify({s,e}));}catch(_){}
+  persistShared();
   paceAlertDismissed=false; renderAll(); sPanel.classList.remove("open");
 };
 $("applyBudget").onclick=()=>{
   const v=parseFloat($("budgetIn").value);
   if(!(v>0)){alert("Enter a budget greater than 0.");return;}
-  ANNUAL_BUDGET=v; try{localStorage.setItem("st_budget",String(v));}catch(_){}
+  ANNUAL_BUDGET=v; persistShared();
   paceAlertDismissed=false; renderAll(); sPanel.classList.remove("open");
 };
 document.querySelectorAll("#badgeSeg .seg-btn").forEach(b=>b.onclick=()=>{
@@ -1217,7 +1263,10 @@ document.querySelectorAll("#badgeSeg .seg-btn").forEach(b=>b.onclick=()=>{
   renderBadge();
 });
 $("resetBtn").onclick=()=>{
-  if(!confirm("Reset theme, budget, contract dates and badge to defaults?"))return;
+  const msg = LIVE
+    ? "Reset your personal view (theme, layout, badge) to defaults?\n\nShared settings (client, budget, contract dates, rate card) are managed by editors and won't change."
+    : "Reset theme, layout, budget, contract dates and rate card to defaults?";
+  if(!confirm(msg))return;
   ["st_theme","st_contract","st_budget","st_badge","st_client","st_logo","st_rate","st_rate_extras","st_layout"].forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});
   location.reload();
 };
@@ -1281,7 +1330,7 @@ function saveRateCard(){
   RATE.minAssets.street_interview=num("r_minStreet",RATE.minAssets.street_interview);
   RATE.minAssets.podcast=num("r_minPod",RATE.minAssets.podcast);RATE.minAssets.ugc=num("r_minUgc",RATE.minAssets.ugc);
   rateExtras=collectExtras();
-  try{localStorage.setItem("st_rate",JSON.stringify(RATE));localStorage.setItem("st_rate_extras",JSON.stringify(rateExtras));}catch(_){}
+  persistShared();
   refreshRateUI();renderAll();closeRate();
 }
 $("editRateBtn").onclick=openRate;
@@ -1349,14 +1398,18 @@ document.querySelectorAll("#layoutOverlay .chip-btn").forEach(b=>b.onclick=()=>{
 function loadPrefs(){
   let saved=null; try{saved=localStorage.getItem("st_theme");}catch(e){}
   applyTheme(saved==="light"||saved==="dark"?saved:"dark");   // dark default; remembers choice
-  try{const c=JSON.parse(localStorage.getItem("st_contract")||"null"); if(c&&c.s&&c.e){CONTRACT_START=c.s;CONTRACT_END=c.e;setupContract();}}catch(e){}
-  try{const bv=parseFloat(localStorage.getItem("st_budget")); if(bv>0)ANNUAL_BUDGET=bv;}catch(e){}
+  if(!LIVE){
+    try{const c=JSON.parse(localStorage.getItem("st_contract")||"null"); if(c&&c.s&&c.e){CONTRACT_START=c.s;CONTRACT_END=c.e;setupContract();}}catch(e){}
+    try{const bv=parseFloat(localStorage.getItem("st_budget")); if(bv>0)ANNUAL_BUDGET=bv;}catch(e){}
+  }
   badgeMode = LIVE ? "live" : "demo";
   try{const bm=localStorage.getItem("st_badge"); if(bm==="live"||bm==="demo"||bm==="hide")badgeMode=bm; else if(bm==="auto")badgeMode=LIVE?"live":"demo";}catch(e){}
-  try{const cn=localStorage.getItem("st_client"); if(cn)CLIENT_NAME=cn;}catch(e){}
-  try{const lg=localStorage.getItem("st_logo"); if(lg)applyClientLogo(lg);}catch(e){}
-  try{const r=JSON.parse(localStorage.getItem("st_rate")||"null"); if(r&&typeof r==="object"){RATE={...RATE,...r,minAssets:{...RATE.minAssets,...(r.minAssets||{})}};}}catch(e){}
-  try{const rx=JSON.parse(localStorage.getItem("st_rate_extras")||"null"); if(Array.isArray(rx))rateExtras=rx;}catch(e){}
+  if(!LIVE){
+    try{const cn=localStorage.getItem("st_client"); if(cn)CLIENT_NAME=cn;}catch(e){}
+    try{const lg=localStorage.getItem("st_logo"); if(lg)applyClientLogo(lg);}catch(e){}
+    try{const r=JSON.parse(localStorage.getItem("st_rate")||"null"); if(r&&typeof r==="object"){RATE={...RATE,...r,minAssets:{...RATE.minAssets,...(r.minAssets||{})}};}}catch(e){}
+    try{const rx=JSON.parse(localStorage.getItem("st_rate_extras")||"null"); if(Array.isArray(rx))rateExtras=rx;}catch(e){}
+  }
   try{const L=JSON.parse(localStorage.getItem("st_layout")||"null"); if(L&&Array.isArray(L.order)&&Array.isArray(L.hidden))layout=L;}catch(e){}
   normalizeLayout(); markPreset();
   refreshRateUI();
