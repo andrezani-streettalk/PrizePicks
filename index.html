@@ -29,6 +29,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+html{overflow-x:clip}
 body{
   background:
     radial-gradient(900px 480px at 12% -8%, var(--glow1), transparent 60%),
@@ -161,7 +162,7 @@ body.viewer .editor-only{display:none!important}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;position:relative;overflow:hidden}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;position:relative;overflow:hidden;min-width:0}
 .kpi .accent{position:absolute;left:0;top:0;bottom:0;width:3px}
 .kpi-lab{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600}
 .kpi-val{font-family:"Space Grotesk";font-weight:700;font-size:28px;letter-spacing:-.01em;margin-top:10px;line-height:1}
@@ -171,7 +172,7 @@ body.viewer .editor-only{display:none!important}
 /* Panels */
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin-bottom:16px}
 .dash-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;grid-auto-flow:row dense}
-.dash-grid>.dcard{margin:0!important}
+.dash-grid>.dcard{margin:0!important;min-width:0}
 .dash-grid>.dcard[data-span="full"]{grid-column:span 6}
 .dash-grid>.dcard[data-span="wide"]{grid-column:span 4}
 .dash-grid>.dcard[data-span="narrow"]{grid-column:span 2}
@@ -362,6 +363,17 @@ body.previewing .topbar{top:40px}
 @media (max-width:980px){.kpis{grid-template-columns:repeat(2,1fr)}.rc-body{grid-template-columns:1fr}}
 @media (max-width:560px){.wrap{padding:18px 14px 60px}.frow,.frow3{grid-template-columns:1fr}.hero{padding:24px 20px}.remaining{font-size:42px}.logo-unit img{height:20px}.lockup{gap:12px}.logo-unit .eyebrow{font-size:9px}.hero-right{text-align:left;margin-top:8px}.meter{margin-top:40px}}
 @media (max-width:430px){.logo-unit img{height:16px}.lockup{gap:9px}.cross{font-size:16px}}
+@media (max-width:620px){
+  .topbar{background:var(--panel);backdrop-filter:none;-webkit-backdrop-filter:none}
+  .topbar-inner{padding:9px 14px;gap:10px}
+  .logo-unit .eyebrow{display:none}
+  .logo-unit{gap:0}
+  .lockup{gap:10px}
+  .cross{font-size:15px}
+  .seasonbox{gap:8px}
+  #addBtn{padding:9px 13px;font-size:13px}
+  .databadge{padding:5px 9px;font-size:11px}
+}
 @media (max-width:700px){
   .tbl-scroll{overflow-x:visible}
   .tbl-scroll table,.tbl-scroll tbody,.tbl-scroll tfoot{display:block;width:100%;min-width:0}
