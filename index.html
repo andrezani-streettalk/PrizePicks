@@ -189,7 +189,7 @@ body.viewer .editor-only{display:none!important}
 .lswitch input{width:36px;height:20px;cursor:pointer;accent-color:var(--st1)}
 .drawer-wrap{position:fixed;inset:0;z-index:170;visibility:hidden;opacity:0;transition:opacity .2s ease}
 .drawer-wrap.show{visibility:visible;opacity:1}
-.drawer-scrim{position:absolute;inset:0;background:rgba(8,8,20,.5)}
+.drawer-scrim{position:absolute;inset:0;background:rgba(8,8,20,.15)}
 .drawer{position:absolute;top:0;right:0;height:100%;width:380px;max-width:88vw;background:var(--panel);border-left:1px solid var(--line);box-shadow:-14px 0 44px rgba(0,0,0,.5);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .24s ease}
 .drawer-wrap.show .drawer{transform:translateX(0)}
 .drawer-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);flex:0 0 auto}
@@ -464,9 +464,12 @@ body.previewing .topbar{top:40px}
           </div>
         </div>
         <div class="sp-sec">
-          <div class="sp-lab">Export report</div>
+          <div class="sp-lab">Export &amp; backup</div>
           <button class="sp-btn" id="csvBtn">Download CSV</button>
           <button class="sp-btn" id="pdfBtn">Print / Save as PDF</button>
+          <button class="sp-btn" id="backupBtn">Download backup (JSON)</button>
+          <button class="sp-btn editor-only" id="importBtn">Import backup…</button>
+          <input type="file" id="importFile" accept="application/json,.json" style="display:none">
         </div>
         <div class="sp-sec editor-only">
           <div class="sp-lab">Preview</div>
@@ -942,7 +945,8 @@ function renderKPIs(){
 
 function statusLabel(s){return({planned:"Planned",shooting:"Shooting",editing:"Editing",completed:"Completed"})[s]||s;}
 function shortUrl(u){if(!u)return"";try{const d=new URL(u);return d.hostname.replace("www.","")+(d.pathname.length>1?"/…":"");}catch(e){return u.slice(0,22)+"…";}}
-function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function safeUrl(u){u=String(u||"").trim();return /^https?:\/\//i.test(u)?u:"";}  // only http(s) links — blocks javascript:, data:, etc.
 function shortTitle(t){return t.length>32?t.slice(0,30)+"…":t;}
 
 const CAMPAIGNS=["NBA Playoffs","NBA Finals","World Cup","Super Bowl","All-Star","March Madness","World Series","Stanley Cup","NFL","NBA","MLB","NHL","Olympics"];
@@ -979,9 +983,10 @@ function renderTable(){
     const meta=`<span class="t-cat" style="--c:${CAT_COLOR[p.type]}"><span class="t-cat-dot"></span>${cat}</span>`
       +(camp?`<span class="tag camp">${esc(camp)}</span>`:"")
       +tags.map(([l,c])=>`<span class="tag ${c}">${l}</span>`).join("");
-    const links=(p.brief_link?`<a class="lchip" href="${esc(p.brief_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Brief ↗</a>`:"")
-      +(p.frame_link?`<a class="lchip" href="${esc(p.frame_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Frame ↗</a>`:"")
-      +((!p.brief_link&&!p.frame_link)?'<span class="muted-cell">—</span>':"");
+    const bl=safeUrl(p.brief_link), fl=safeUrl(p.frame_link);
+    const links=(bl?`<a class="lchip" href="${esc(bl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Brief ↗</a>`:"")
+      +(fl?`<a class="lchip" href="${esc(fl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Frame ↗</a>`:"")
+      +((!bl&&!fl)?'<span class="muted-cell">—</span>':"");
     const tr=document.createElement("tr");
     tr.onclick=e=>{if(!canEdit())return;if(e.target.closest(".mini")||e.target.closest("a"))return;openEdit(p);};
     tr.innerHTML=`
@@ -991,7 +996,7 @@ function renderTable(){
       <td class="r" data-label="Value"><div class="t-val"><span class="total">${fmt(total)}</span><span class="t-share">${shareTxt}</span></div></td>
       <td data-label="Links"><div class="links">${links}</div></td>
       <td class="muted-cell num" data-label="Delivered">${p.completion_date?fmtDate(new Date(p.completion_date+"T00:00:00")):"—"}</td>
-      ${canEdit()?`<td class="r actions-cell"><span class="row-actions"><button class="mini" title="Delete" onclick="event.stopPropagation();confirmDel('${p.id}')">🗑</button></span></td>`:'<td></td>'}`;
+      ${canEdit()?`<td class="r actions-cell"><span class="row-actions"><button class="mini" title="Delete" data-del="${esc(p.id)}">🗑</button></span></td>`:'<td></td>'}`;
     tb.appendChild(tr);
   }
   if(tf){const sum=rows.reduce((s,p)=>s+priceOf(p),0);
@@ -1146,7 +1151,7 @@ document.querySelectorAll("#burnSeg button").forEach(b=>b.onclick=()=>{burnGran=
 function exportCSV(){
   const cols=["Title","Category","Status","Assets","Travel days","Travel costs","Hook/CTA variations","Rush","Extra mashups","Resize requests","Whitelist handles","Whitelist months","Total","Brief link","Frame link","Completion date","Notes"];
   const rows=state.map(p=>[p.title,CATEGORY_LABEL[p.type]||p.type,statusLabel(p.status),p.assets||0,p.travelDays||0,p.travelCosts||0,p.hookVariations||0,p.rush?"Yes":"No",p.mashups||0,p.resizes||0,p.whitelistHandles||0,p.whitelistMonths||0,priceOf(p),p.brief_link||"",p.frame_link||"",p.completion_date||"",p.notes||""]);
-  const q=v=>{v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const q=v=>{v=String(v==null?"":v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
   const csv=[cols].concat(rows).map(r=>r.map(q).join(",")).join("\r\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
   a.download=`StreetTalk-PrizePicks-${fmtDate(NOW).replace(/[ ,]/g,"-")}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
@@ -1158,6 +1163,61 @@ function exportPDF(){
 }
 $("csvBtn").onclick=()=>{sPanel.classList.remove("open");exportCSV();};
 $("pdfBtn").onclick=()=>{sPanel.classList.remove("open");exportPDF();};
+document.getElementById("tbody").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(d){e.stopPropagation();confirmDel(d.getAttribute("data-del"));}});
+
+/* ----- backup (JSON export / import) ----- */
+function buildBackup(){
+  return { app:"streettalk-prizepicks-dashboard", version:1, exportedAt:new Date().toISOString(),
+    settings:{ budget:ANNUAL_BUDGET, contract_start:CONTRACT_START, contract_end:CONTRACT_END,
+      client_name:CLIENT_NAME, logo:clientLogo||null, rate:RATE, rate_extras:rateExtras },
+    items: state.map(p=>({ title:p.title, type:p.type, status:p.status, assets:+p.assets||0,
+      travelDays:+p.travelDays||0, travelCosts:+p.travelCosts||0, hookVariations:+p.hookVariations||0,
+      rush:!!p.rush, mashups:+p.mashups||0, resizes:+p.resizes||0, whitelistHandles:+p.whitelistHandles||0,
+      whitelistMonths:+p.whitelistMonths||0, brief_link:p.brief_link||null, frame_link:p.frame_link||null,
+      notes:p.notes||null, completion_date:p.completion_date||null })) };
+}
+function exportBackup(){
+  const blob=new Blob([JSON.stringify(buildBackup(),null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`StreetTalk-PrizePicks-backup-${fmtDate(NOW).replace(/[ ,]/g,"-")}.json`;
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
+}
+async function importBackup(file){
+  let data; try{ data=JSON.parse(await file.text()); }catch(_){ alert("That file isn't valid JSON — please pick a backup file exported from this dashboard."); return; }
+  if(!data || (typeof data!=="object") || (!Array.isArray(data.items) && !data.settings)){ alert("This doesn't look like a dashboard backup."); return; }
+  const n=Array.isArray(data.items)?data.items.length:0;
+  if(!canEdit()){ alert("Only editors can import a backup."); return; }
+  if(!confirm(`Import this backup?\n\n• Restores shared settings (budget, dates, client, logo, rate card)\n• Adds ${n} line item${n===1?"":"s"} to the tracker (existing items are kept)\n\nTip: download a backup first so you can undo.`)) return;
+  if(data.settings){
+    const s=data.settings;
+    if(+s.budget>0) ANNUAL_BUDGET=+s.budget;
+    if(s.contract_start) CONTRACT_START=s.contract_start;
+    if(s.contract_end) CONTRACT_END=s.contract_end;
+    if(s.client_name) CLIENT_NAME=String(s.client_name).slice(0,200);
+    if(s.rate&&typeof s.rate==="object") RATE={...RATE,...s.rate,minAssets:{...RATE.minAssets,...(s.rate.minAssets||{})}};
+    if(Array.isArray(s.rate_extras)) rateExtras=s.rate_extras;
+    applyClientLogo(s.logo||null);
+    setupContract(); refreshRateUI(); syncContractInputs(); persistShared();
+  }
+  if(Array.isArray(data.items) && data.items.length){
+    if(LIVE){
+      try{
+        const c=await getClient();
+        const {error}=await c.from("projects").insert(data.items.map(toRow));
+        if(error){ alert("Settings were restored, but the line items couldn't be imported — "+(error.message||"check that you have editor access.")); }
+        await loadData();
+      }catch(e){ alert("Settings were restored, but couldn't reach the database to import the line items."); }
+    } else {
+      const base=state.length;
+      data.items.forEach((it,i)=>state.push({ id:"imp-"+Date.now()+"-"+i, sort_order:base+i, ...it }));
+    }
+  }
+  paceAlertDismissed=false; renderAll();
+  alert("Backup imported successfully.");
+}
+$("backupBtn").onclick=()=>{sPanel.classList.remove("open");exportBackup();};
+$("importBtn").onclick=()=>$("importFile").click();
+$("importFile").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(f){sPanel.classList.remove("open");importBackup(f);}};
 
 /* ----- over-pace alert ----- */
 let paceAlertDismissed=false;
