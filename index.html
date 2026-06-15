@@ -173,6 +173,8 @@ body.viewer .editor-only{display:none!important}
 .dash-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;grid-auto-flow:row dense}
 .dash-grid>.dcard{margin:0!important}
 .dash-grid>.dcard[data-span="full"]{grid-column:span 6}
+.dash-grid>.dcard[data-span="wide"]{grid-column:span 4}
+.dash-grid>.dcard[data-span="narrow"]{grid-column:span 2}
 .dash-grid>.dcard[data-span="half"]{grid-column:span 3}
 @media (max-width:980px){.dash-grid{grid-template-columns:1fr;gap:12px}.dash-grid>.dcard{grid-column:1 / -1!important}}
 .preset-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 16px}
@@ -180,11 +182,21 @@ body.viewer .editor-only{display:none!important}
 .chip-btn:hover{border-color:var(--st2)}
 .layout-list{display:flex;flex-direction:column;gap:8px}
 .lrow{display:flex;align-items:center;gap:12px;background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.lrow.dragging{opacity:.45}
-.lhandle{color:var(--faint);cursor:grab;font-size:16px;line-height:1}
+.lrow.dragging{opacity:.6;border-color:var(--st2);box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.lhandle{color:var(--faint);cursor:grab;font-size:16px;line-height:1;touch-action:none;user-select:none;padding:4px 2px;margin:-4px 0}
 .lname{flex:1;font-size:13.5px;font-weight:500}
 .lrow.hidden-card .lname{color:var(--faint);text-decoration:line-through}
 .lswitch input{width:36px;height:20px;cursor:pointer;accent-color:var(--st1)}
+.drawer-wrap{position:fixed;inset:0;z-index:170;visibility:hidden;opacity:0;transition:opacity .2s ease}
+.drawer-wrap.show{visibility:visible;opacity:1}
+.drawer-scrim{position:absolute;inset:0;background:rgba(8,8,20,.5)}
+.drawer{position:absolute;top:0;right:0;height:100%;width:380px;max-width:88vw;background:var(--panel);border-left:1px solid var(--line);box-shadow:-14px 0 44px rgba(0,0,0,.5);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .24s ease}
+.drawer-wrap.show .drawer{transform:translateX(0)}
+.drawer-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.drawer-h h3{margin:0;font-size:16px}
+.drawer-body{flex:1 1 auto;overflow-y:auto;padding:16px 20px}
+.drawer-f{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 20px;border-top:1px solid var(--line);flex:0 0 auto}
+@media(max-width:560px){.drawer{width:100%;max-width:100%}}
 .panel-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:12px}
 .panel-h h3{margin:0;font-size:15px;font-weight:600}
 .panel-h .hint{font-size:11.5px;color:var(--faint)}
@@ -350,6 +362,24 @@ body.previewing .topbar{top:40px}
 @media (max-width:980px){.kpis{grid-template-columns:repeat(2,1fr)}.rc-body{grid-template-columns:1fr}}
 @media (max-width:560px){.wrap{padding:18px 14px 60px}.frow,.frow3{grid-template-columns:1fr}.hero{padding:24px 20px}.remaining{font-size:42px}.logo-unit img{height:20px}.lockup{gap:12px}.logo-unit .eyebrow{font-size:9px}.hero-right{text-align:left;margin-top:8px}.meter{margin-top:40px}}
 @media (max-width:430px){.logo-unit img{height:16px}.lockup{gap:9px}.cross{font-size:16px}}
+@media (max-width:700px){
+  .tbl-scroll{overflow-x:visible}
+  .tbl-scroll table,.tbl-scroll tbody,.tbl-scroll tfoot{display:block;width:100%;min-width:0}
+  .tbl-scroll thead{display:none}
+  .tbl-scroll tbody tr{display:block;background:var(--ink2);border:1px solid var(--line);border-radius:12px;margin:0 0 10px;padding:11px 14px}
+  .tbl-scroll td{display:flex;justify-content:space-between;align-items:center;gap:14px;border:none;padding:6px 0;text-align:right}
+  .tbl-scroll td.li-cell{display:block;text-align:left;min-width:0;padding:2px 0 9px 10px;margin-bottom:7px;border-bottom:1px solid var(--line)}
+  .tbl-scroll td[data-label]::before{content:attr(data-label);color:var(--faint);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;text-align:left}
+  .tbl-scroll td .t-val{align-items:flex-end}
+  .tbl-scroll td .links{justify-content:flex-end}
+  .tbl-scroll td.actions-cell{justify-content:flex-end;padding-top:9px}
+  .tbl-scroll td.actions-cell::before{display:none}
+  .tbl-scroll td:empty{display:none}
+  .tbl-scroll tfoot tr,.tbl-scroll tfoot td{display:block;text-align:center;padding:14px 0 2px}
+}
+@media (max-width:560px){
+  .settings-pop{position:fixed;top:62px;left:12px;right:12px;width:auto;max-height:calc(100vh - 80px)}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -495,7 +525,7 @@ body.previewing .topbar{top:40px}
     <div class="kpi"><span class="accent" style="background:var(--st4)"></span><div class="kpi-lab">Days Remaining</div><div class="kpi-val num" id="kpiProj">0</div><div class="kpi-meta" id="kpiProjMeta"></div></div>
   </div>
 
-  <div class="panel dcard" data-card="burn" data-span="full">
+  <div class="panel dcard" data-card="burn" data-span="wide">
       <div class="panel-h"><h3>Budget burn-down vs. plan</h3>
         <div class="seg-mini" id="burnSeg"><button data-gran="month" class="active">Monthly</button><button data-gran="quarter">Quarterly</button></div>
       </div>
@@ -506,7 +536,7 @@ body.previewing .topbar{top:40px}
         <span class="lg hint" id="burnHint">remaining budget</span>
       </div>
     </div>
-    <div class="panel pacing dcard" data-card="pacing" data-span="half">
+    <div class="panel pacing dcard" data-card="pacing" data-span="narrow">
       <div class="panel-h"><h3>Pacing snapshot</h3></div>
       <div class="pace-stat"><div class="ps-lab">Committed to date</div><div class="ps-val num" id="psCommitted">$0</div></div>
       <div class="pace-stat"><div class="ps-lab">On-pace target today</div><div class="ps-val num" id="psTarget">$0</div></div>
@@ -664,16 +694,19 @@ body.previewing .topbar{top:40px}
   <div class="modal-f"><button class="btn" id="cancelRate">Cancel</button><button class="btn btn-primary" id="saveRate">Save rate card</button></div>
 </div></div>
 
-<!-- CUSTOMIZE VIEW -->
-<div class="overlay" id="layoutOverlay"><div class="modal">
-  <div class="modal-h"><h3>Customize your view</h3><button class="iconbtn" id="closeLayout">&times;</button></div>
-  <div class="modal-body">
-    <p class="fhint" style="margin-bottom:2px">Drag to reorder, toggle to show or hide. Saved to this browser — only you see your layout.</p>
-    <div class="preset-row"><span class="fhint">Start from a preset:</span><button class="chip-btn" data-preset="full">Full</button><button class="chip-btn" data-preset="exec">Executive</button><button class="chip-btn" data-preset="delivery">Delivery &amp; pipeline</button></div>
-    <div id="layoutList" class="layout-list"></div>
-  </div>
-  <div class="modal-f"><span class="fhint">Changes apply instantly</span><button class="btn btn-primary" id="doneLayout">Done</button></div>
-</div></div>
+<!-- CUSTOMIZE VIEW (side drawer) -->
+<div class="drawer-wrap" id="layoutOverlay">
+  <div class="drawer-scrim" id="layoutScrim"></div>
+  <aside class="drawer" role="dialog" aria-label="Customize your view">
+    <div class="drawer-h"><h3>Customize your view</h3><button class="iconbtn" id="closeLayout">&times;</button></div>
+    <div class="drawer-body">
+      <p class="fhint" style="margin:0 0 4px">Drag the handles to reorder, toggle to show or hide. Saved to this browser — only you see your layout.</p>
+      <div class="preset-row"><span class="fhint">Preset:</span><button class="chip-btn" data-preset="full">Full</button><button class="chip-btn" data-preset="exec">Executive</button><button class="chip-btn" data-preset="delivery">Delivery</button></div>
+      <div id="layoutList" class="layout-list"></div>
+    </div>
+    <div class="drawer-f"><span class="fhint">Changes apply instantly</span><button class="btn btn-primary" id="doneLayout">Done</button></div>
+  </aside>
+</div>
 
 <script>
 /* ===== 1) CONFIG ===== */
@@ -952,12 +985,12 @@ function renderTable(){
     tr.onclick=e=>{if(!canEdit())return;if(e.target.closest(".mini")||e.target.closest("a"))return;openEdit(p);};
     tr.innerHTML=`
       <td class="li-cell" style="box-shadow:inset 3px 0 0 ${CAT_COLOR[p.type]}"><div class="t-title">${esc(p.title)}</div><div class="t-meta">${meta}</div></td>
-      <td><span class="status ${p.status}"><span class="sdot"></span>${statusLabel(p.status)}</span></td>
-      <td class="r">${p.assets?`<span class="assets-pill num">${p.assets}</span>`:'<span class="muted-cell">—</span>'}</td>
-      <td class="r"><div class="t-val"><span class="total">${fmt(total)}</span><span class="t-share">${shareTxt}</span></div></td>
-      <td><div class="links">${links}</div></td>
-      <td class="muted-cell num">${p.completion_date?fmtDate(new Date(p.completion_date+"T00:00:00")):"—"}</td>
-      ${canEdit()?`<td class="r"><span class="row-actions"><button class="mini" title="Delete" onclick="event.stopPropagation();confirmDel('${p.id}')">🗑</button></span></td>`:'<td></td>'}`;
+      <td data-label="Status"><span class="status ${p.status}"><span class="sdot"></span>${statusLabel(p.status)}</span></td>
+      <td class="r" data-label="Assets">${p.assets?`<span class="assets-pill num">${p.assets}</span>`:'<span class="muted-cell">—</span>'}</td>
+      <td class="r" data-label="Value"><div class="t-val"><span class="total">${fmt(total)}</span><span class="t-share">${shareTxt}</span></div></td>
+      <td data-label="Links"><div class="links">${links}</div></td>
+      <td class="muted-cell num" data-label="Delivered">${p.completion_date?fmtDate(new Date(p.completion_date+"T00:00:00")):"—"}</td>
+      ${canEdit()?`<td class="r actions-cell"><span class="row-actions"><button class="mini" title="Delete" onclick="event.stopPropagation();confirmDel('${p.id}')">🗑</button></span></td>`:'<td></td>'}`;
     tb.appendChild(tr);
   }
   if(tf){const sum=rows.reduce((s,p)=>s+priceOf(p),0);
@@ -998,7 +1031,7 @@ function renderCharts(){
       {label:"Budget remaining (actual)",data:actualSeries,borderColor:"#6B6BE0",backgroundColor:"rgba(107,107,224,.12)",fill:true,tension:.25,borderWidth:3,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:"#9696E9",spanGaps:false},
       {label:"On-pace plan",data:ideal,borderColor:T.tick,borderDash:[6,5],borderWidth:1.5,pointRadius:0,pointHoverRadius:5,fill:false,tension:0}
     ]},
-    options:{interaction:{mode:"index",intersect:false},hover:{mode:"index",intersect:false},
+    options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},hover:{mode:"index",intersect:false},
       plugins:{legend:{display:false},todayMarker:{idx:markerIdx},
         tooltip:{mode:"index",intersect:false,padding:11,titleFont:{family:"Space Grotesk",weight:"700"},
           callbacks:{
@@ -1032,14 +1065,14 @@ function renderCharts(){
   state.filter(p=>p.status==="completed"&&p.completion_date).forEach(p=>{const o=cOffset(new Date(p.completion_date+"T00:00:00"));if(o>=0&&o<CONTRACT_MONTHS)md[o]+=priceOf(p);});
   charts.month=new Chart(document.getElementById("monthChart"),{type:"bar",
     data:{labels:MONTHS,datasets:[{data:md,backgroundColor:"#6B6BE0",borderRadius:5,maxBarThickness:26}]},
-    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} delivered`}}},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} delivered`}}},
       scales:{x:{grid:{display:false},ticks:{color:T.tick,font:CHART_FONT}},y:{grid:{color:T.grid},ticks:{color:T.tick,font:CHART_FONT,callback:v=>fmtK(v)}}}}});
 
   // by line item
   const sorted=[...state].sort((a,b)=>priceOf(b)-priceOf(a)).slice(0,10);
   charts.bar=new Chart(document.getElementById("barChart"),{type:"bar",
     data:{labels:sorted.map(p=>shortTitle(p.title)),datasets:[{data:sorted.map(p=>priceOf(p)),backgroundColor:sorted.map(p=>STATUS_COLOR[p.status]),borderRadius:6,maxBarThickness:26}]},
-    options:{indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)}`}}},
+    options:{maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)}`}}},
       scales:{x:{grid:{color:T.grid},ticks:{color:T.tick,font:CHART_FONT,callback:v=>fmtK(v)}},y:{grid:{display:false},ticks:{color:T.axis,font:{size:11,family:"Inter"}}}}}});
 }
 
@@ -1273,7 +1306,7 @@ $("exitPreview").onclick=()=>setPreview(false);
 /* ===== customizable view (per-user) ===== */
 const CARDS=[["kpis","Key metrics"],["burn","Budget burn-down"],["pacing","Pacing snapshot"],["cat","Spend by category"],["mix","Production vs add-ons"],["month","Monthly delivered"],["funnel","Status funnel"],["bar","Spend by line item"],["recent","Recently delivered"],["tracker","Project tracker"]];
 const ALL_IDS=CARDS.map(c=>c[0]); const CARD_NAME=Object.fromEntries(CARDS);
-const PRESETS={full:ALL_IDS.slice(),exec:["kpis","burn","pacing","tracker"],delivery:["kpis","month","funnel","bar","recent","tracker"]};
+const PRESETS={full:ALL_IDS.slice(),exec:["kpis","burn","pacing","cat","mix","tracker"],delivery:["kpis","month","funnel","bar","recent","tracker"]};
 let layout={order:ALL_IDS.slice(),hidden:[]};
 function persistLayout(){try{localStorage.setItem("st_layout",JSON.stringify(layout));}catch(_){}}
 function normalizeLayout(){
@@ -1293,21 +1326,23 @@ function applyPreset(key){const s=PRESETS[key]; if(!s)return; layout={order:s.co
 function renderLayoutList(){
   document.getElementById("layoutList").innerHTML=layout.order.map(id=>{
     const hid=layout.hidden.includes(id);
-    return `<div class="lrow${hid?" hidden-card":""}" draggable="true" data-id="${id}"><span class="lhandle">⠿</span><span class="lname">${CARD_NAME[id]}</span><label class="lswitch"><input type="checkbox" ${hid?"":"checked"} data-vis></label></div>`;
+    return `<div class="lrow${hid?" hidden-card":""}" data-id="${id}"><span class="lhandle">⠿</span><span class="lname">${CARD_NAME[id]}</span><label class="lswitch"><input type="checkbox" ${hid?"":"checked"} data-vis></label></div>`;
   }).join("");
 }
 (function(){
   const wrap=document.getElementById("layoutList"); if(!wrap)return;
   function getAfter(y){const els=[...wrap.querySelectorAll(".lrow:not(.dragging)")];let best={off:-Infinity,el:null};els.forEach(c=>{const b=c.getBoundingClientRect();const off=y-b.top-b.height/2;if(off<0&&off>best.off)best={off,el:c};});return best.el;}
-  wrap.addEventListener("dragstart",e=>{const r=e.target.closest(".lrow");if(r)r.classList.add("dragging");});
-  wrap.addEventListener("dragend",e=>{const r=e.target.closest(".lrow");if(r)r.classList.remove("dragging");commitList();});
-  wrap.addEventListener("dragover",e=>{e.preventDefault();const d=wrap.querySelector(".dragging");if(!d)return;const a=getAfter(e.clientY);if(a==null)wrap.appendChild(d);else wrap.insertBefore(d,a);});
+  let dragRow=null;
+  wrap.addEventListener("pointerdown",e=>{const h=e.target.closest(".lhandle");if(!h)return;dragRow=h.closest(".lrow");dragRow.classList.add("dragging");e.preventDefault();});
+  window.addEventListener("pointermove",e=>{if(!dragRow)return;const a=getAfter(e.clientY);if(a==null)wrap.appendChild(dragRow);else if(a!==dragRow)wrap.insertBefore(dragRow,a);});
+  window.addEventListener("pointerup",()=>{if(!dragRow)return;dragRow.classList.remove("dragging");dragRow=null;commitList();});
   wrap.addEventListener("change",e=>{if(e.target.matches("[data-vis]")){const row=e.target.closest(".lrow");const id=row.dataset.id;layout.hidden=layout.hidden.filter(x=>x!==id);if(!e.target.checked)layout.hidden.push(id);row.classList.toggle("hidden-card",!e.target.checked);persistLayout();applyLayout();renderAll();}});
   function commitList(){layout.order=[...wrap.querySelectorAll(".lrow")].map(r=>r.dataset.id);persistLayout();applyLayout();renderAll();}
 })();
 $("customizeBtn").onclick=()=>{renderLayoutList();$("layoutOverlay").classList.add("show");sPanel.classList.remove("open");};
 $("closeLayout").onclick=$("doneLayout").onclick=()=>$("layoutOverlay").classList.remove("show");
 $("layoutOverlay").onclick=e=>{if(e.target.id==="layoutOverlay")$("layoutOverlay").classList.remove("show");};
+$("layoutScrim").onclick=()=>$("layoutOverlay").classList.remove("show");
 document.querySelectorAll("#presetSeg .seg-btn").forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
 document.querySelectorAll("#layoutOverlay .chip-btn").forEach(b=>b.onclick=()=>{applyPreset(b.dataset.preset);renderLayoutList();});
 
