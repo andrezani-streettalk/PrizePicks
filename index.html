@@ -302,7 +302,7 @@ tbody tr:hover .row-actions{opacity:1}
 .mini:hover{color:var(--bad)}
 
 /* Rate card */
-details.ratecard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+details.ratecard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:16px}
 details.ratecard summary{list-style:none;cursor:pointer;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:15px}
 details.ratecard summary::-webkit-details-marker{display:none}
 .chev{color:var(--faint);transition:.2s}
@@ -378,9 +378,9 @@ body.previewing .topbar{top:40px}
   .tbl-scroll{overflow-x:visible}
   .tbl-scroll table,.tbl-scroll tbody,.tbl-scroll tfoot{display:block;width:100%;min-width:0}
   .tbl-scroll thead{display:none}
-  .tbl-scroll tbody tr{display:block;background:var(--ink2);border:1px solid var(--line);border-radius:12px;margin:0 0 10px;padding:11px 14px}
+  .tbl-scroll tbody tr{display:block;background:var(--ink2);border:1px solid var(--line);border-left:3px solid var(--cat,var(--line));border-radius:12px;margin:0 0 10px;padding:13px 16px}
   .tbl-scroll td{display:flex;justify-content:space-between;align-items:center;gap:14px;border:none;padding:6px 0;text-align:right}
-  .tbl-scroll td.li-cell{display:block;text-align:left;min-width:0;padding:2px 0 9px 10px;margin-bottom:7px;border-bottom:1px solid var(--line)}
+  .tbl-scroll td.li-cell{display:block;text-align:left;min-width:0;padding:0 0 10px 0;margin-bottom:8px;border-bottom:1px solid var(--line);box-shadow:none!important}
   .tbl-scroll td[data-label]::before{content:attr(data-label);color:var(--faint);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;text-align:left}
   .tbl-scroll td .t-val{align-items:flex-end}
   .tbl-scroll td .links{justify-content:flex-end}
@@ -1000,6 +1000,7 @@ function renderTable(){
       +(fl?`<a class="lchip" href="${esc(fl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Frame ↗</a>`:"")
       +((!bl&&!fl)?'<span class="muted-cell">—</span>':"");
     const tr=document.createElement("tr");
+    tr.style.setProperty("--cat",CAT_COLOR[p.type]||"transparent");
     tr.onclick=e=>{if(!canEdit())return;if(e.target.closest(".mini")||e.target.closest("a"))return;openEdit(p);};
     tr.innerHTML=`
       <td class="li-cell" style="box-shadow:inset 3px 0 0 ${CAT_COLOR[p.type]}"><div class="t-title">${esc(p.title)}</div><div class="t-meta">${meta}</div></td>
