@@ -646,7 +646,7 @@ body.previewing .topbar{top:40px}
     <div class="frow3">
       <div class="field"><label>Travel · person-days</label><input type="number" min="0" id="f_travelDays" value="0"><div class="fhint" id="hintTravel">$2,500 per person-day</div></div>
       <div class="field"><label>Travel costs ($)</label><input type="number" min="0" id="f_travelCosts" value="0"><div class="fhint">Pre-approved flights &amp; hotels (pass-through)</div></div>
-      <div class="field"><label>Hook / CTA variations</label><input type="number" min="0" id="f_hook" value="0"><div class="fhint" id="hintHook">$200 each, per 5-asset set</div></div>
+      <div class="field"><label id="hookLabel">Hook / CTA variations</label><input type="number" min="0" id="f_hook" value="0"><div class="fhint" id="hintHook">$200 each, per 5-asset set</div></div>
     </div>
     <div class="frow3">
       <div class="field"><label>Extra mashups</label><input type="number" min="0" id="f_mashups" value="0"><div class="fhint" id="hintMash">$250 each</div></div>
@@ -683,7 +683,7 @@ body.previewing .topbar{top:40px}
     <div class="addons-h">Pricing</div>
     <div class="frow">
       <div class="field"><label>Per-asset rate ($)</label><input type="number" min="0" id="r_perAsset"><div class="fhint">Street / Podcast / UGC, per video</div></div>
-      <div class="field"><label>Editing / Variations rate ($)</label><input type="number" min="0" id="r_editAsset"><div class="fhint">per edited video</div></div>
+      <div class="field"><label>Edit variation rate ($)</label><input type="number" min="0" id="r_editAsset"><div class="fhint">per edit variation</div></div>
     </div>
     <div class="frow">
       <div class="field"><label>Hook / CTA per variation ($)</label><input type="number" min="0" id="r_hook"><div class="fhint">charged per set of assets</div></div>
@@ -739,7 +739,7 @@ let CONTRACT_END   = "2027-03-31"; // contract end   (YYYY-MM-DD)
 
 
 /* ===== 2) RATE CARD (single source of truth) ===== */
-let RATE = { perAsset:500, editingPerAsset:250, minAssets:{street_interview:5,podcast:5,ugc:3,editing:0},
+let RATE = { perAsset:500, editVariation:250, minAssets:{street_interview:5,podcast:5,ugc:3,editing:0},
   hookPerVariationPerSet:200, setSize:5, travelPerPersonDay:2500, rush:2000, mashup:250, resize:250, whitelistPerHandlePerMonth:2000 };
 let rateExtras = [];   // editor-added reference-only rows: {name, price, note}
 let clientLogo = null; // current client logo (data URL or null) — for shared DB save
@@ -765,11 +765,13 @@ function priceParts(p){
   if(["street_interview","podcast","ugc"].includes(p.type)){
     const min=RATE.minAssets[p.type]; const billable=assets>0?Math.max(assets,min):0;
     base=billable*RATE.perAsset; if(base) out.push([`${billable} assets × ${fmt(RATE.perAsset)}${billable>assets?` (min ${min})`:""}`,base]);
-  } else if(p.type==="editing"){
-    base=assets*RATE.editingPerAsset; if(base) out.push([`${assets} video${assets===1?"":"s"} × ${fmt(RATE.editingPerAsset)}`,base]);
   }
-  const sets=Math.max(1,Math.ceil(assets/RATE.setSize));
-  const hook=(+p.hookVariations||0)*sets*RATE.hookPerVariationPerSet; if(hook) out.push([`${p.hookVariations} hook/CTA × ${sets} set${sets>1?"s":""} × ${fmt(RATE.hookPerVariationPerSet)}`,hook]);
+  if(p.type==="editing"){
+    const ev=(+p.hookVariations||0)*RATE.editVariation; if(ev){ out.push([`${p.hookVariations} edit variation${(+p.hookVariations)===1?"":"s"} × ${fmt(RATE.editVariation)}`,ev]); base+=ev; }
+  } else {
+    const sets=Math.max(1,Math.ceil(assets/RATE.setSize));
+    const hook=(+p.hookVariations||0)*sets*RATE.hookPerVariationPerSet; if(hook) out.push([`${p.hookVariations} hook/CTA × ${sets} set${sets>1?"s":""} × ${fmt(RATE.hookPerVariationPerSet)}`,hook]);
+  }
   const travel=(+p.travelDays||0)*RATE.travelPerPersonDay; if(travel) out.push([`${p.travelDays} person-days × ${fmt(RATE.travelPerPersonDay)}`,travel]);
   const tc=+p.travelCosts||0; if(tc) out.push(["Pre-approved travel costs",tc]);
   const rush=p.rush?RATE.rush:0; if(rush) out.push(["Rush delivery",rush]);
@@ -971,7 +973,7 @@ function campaignOf(p){const t=(p.title||"").toLowerCase();for(const c of CAMPAI
 function scopeTags(p){
   const out=[];
   if((+p.travelDays||0)>0||(+p.travelCosts||0)>0) out.push(["✈ Travel","scope"]);
-  if((+p.hookVariations||0)>0) out.push([`Hooks ×${+p.hookVariations}`,"scope"]);
+  if((+p.hookVariations||0)>0) out.push([`${p.type==="editing"?"Variations":"Hooks"} ×${+p.hookVariations}`,"scope"]);
   if((+p.mashups||0)>0) out.push([`Mashups ×${+p.mashups}`,"scope"]);
   if((+p.resizes||0)>0) out.push([`Resizes ×${+p.resizes}`,"scope"]);
   if((+p.whitelistHandles||0)>0&&(+p.whitelistMonths||0)>0) out.push(["Whitelisting","scope"]);
@@ -1123,19 +1125,22 @@ function updateRateHints(){
   const t=$("f_type").value, a=+$("f_assets").value||0;
   const billable=["street_interview","podcast","ugc"].includes(t);
   const isEditing=t==="editing";
-  const min=RATE.minAssets[t]||0, pa=RATE.perAsset, ea=RATE.editingPerAsset;
+  const min=RATE.minAssets[t]||0, pa=RATE.perAsset, ea=RATE.editVariation;
   const rb=$("rateBanner");
   if(rb) rb.innerHTML=billable
     ? `<span class="rb-dot"></span><span>${CATEGORY_LABEL[t]} · <b>${fmt(pa)}</b> per asset · <b>${min}</b>-asset minimum per item</span>`
-    : `<span class="rb-dot"></span><span><b>Editing / Variations</b> · <b>${fmt(ea)}</b> per video — plus hooks, mashups &amp; resizes below</span>`;
-  const al=$("assetsLabel"); if(al) al.textContent=billable?`Assets (videos) — ${fmt(pa)} each`:`Assets (videos) — ${fmt(ea)} each`;
+    : `<span class="rb-dot"></span><span><b>Editing / Variations</b> · <b>${fmt(ea)}</b> per edit variation — enter the variation count below; mashups &amp; resizes price separately</span>`;
+  const al=$("assetsLabel"); if(al) al.textContent=billable?`Assets (videos) — ${fmt(pa)} each`:`Videos delivered`;
   const ah=$("assetsHint");
   if(ah){
     if(billable){
       const eff=a>0?Math.max(a,min):0;
       ah.textContent = (a>0&&a<min) ? `Below the ${min}-asset minimum — billed as ${fmt(min*pa)}` : `${eff} asset${eff===1?"":"s"} × ${fmt(pa)} = ${fmt(eff*pa)}`;
-    } else ah.textContent=`${a} video${a===1?"":"s"} × ${fmt(ea)} = ${fmt(a*ea)}`;
+    } else ah.textContent="Counts toward assets delivered — billing is per variation below.";
   }
+  const hl=$("hookLabel"), hh=$("hintHook");
+  if(hl) hl.textContent=isEditing?"Edit variations":"Hook / CTA variations";
+  if(hh) hh.textContent=isEditing?`${fmt(ea)} each — e.g. 10 = ${fmt(10*ea)}`:"$200 each, per 5-asset set";
 }
 function updatePreview(){updateRateHints();const bd=priceParts(readForm());$("ppTotal").textContent=fmt(bd.total);$("ppBreakdown").innerHTML=bd.items.length?bd.items.map(([l,v])=>`<div class="pp-row"><span>${l}</span><span class="num">${fmt(v)}</span></div>`).join(""):`<div class="pp-row"><span>Enter assets or add-ons to price this item</span><span></span></div>`;}
 function openEdit(p){editing=p||null;$("modalTitle").textContent=p?"Edit line item":"Add line item";$("deleteBtn").style.visibility=p?"visible":"hidden";const v=p||{type:"street_interview",status:"planned"};$("f_title").value=v.title||"";$("f_type").value=v.type||"street_interview";$("f_status").value=v.status||"planned";$("f_assets").value=v.assets||0;$("f_travelDays").value=v.travelDays||0;$("f_travelCosts").value=v.travelCosts||0;$("f_hook").value=v.hookVariations||0;$("f_rush").checked=!!v.rush;$("f_mashups").value=v.mashups||0;$("f_resizes").value=v.resizes||0;$("f_wlHandles").value=v.whitelistHandles||0;$("f_wlMonths").value=v.whitelistMonths||0;$("f_brief").value=v.brief_link||"";$("f_frame").value=v.frame_link||"";$("f_notes").value=v.notes||"";$("f_date").value=v.completion_date||"";updatePreview();$("editOverlay").classList.add("show");}
@@ -1361,7 +1366,7 @@ function renderRateCard(){
     ["Street Interview Ad",`${fmt(RATE.perAsset)} / asset`,`${m.street_interview} asset min per angle`],
     ["Podcast Ad",`${fmt(RATE.perAsset)} / asset`,`${m.podcast} asset min per shoot`],
     ["UGC Ad",`${fmt(RATE.perAsset)} / asset`,`${m.ugc} asset min per creator`],
-    ["Editing / Variations",`${fmt(RATE.editingPerAsset)} / video`,"plus variations & add-ons below"],
+    ["Editing / Variations",`${fmt(RATE.editVariation)} / variation`,"video edits, recuts & variations"],
     ["Travel Fee",`${fmt(RATE.travelPerPersonDay)} / person / day`,"+ pre-approved flights & hotels"],
     ["Hook / CTA Variations",`${fmt(RATE.hookPerVariationPerSet)} / variation`,`per set of ${RATE.setSize} assets`],
     ["Rush Fee",`${fmt(RATE.rush)}`,"2-week push (timely approvals)"],
@@ -1394,7 +1399,7 @@ function rateRowHTML(e,i){return `<div class="frow3 rate-extra" data-i="${i}">
 function renderRateExtras(){const w=document.getElementById("rateExtrasWrap");w.innerHTML=rateExtras.length?rateExtras.map(rateRowHTML).join(""):`<div class="fhint">No extra lines yet — add one to document a service the auto-calculator doesn't cover.</div>`;}
 function collectExtras(){return [...document.querySelectorAll("#rateExtrasWrap .rate-extra")].map(r=>{const g=k=>(r.querySelector(`[data-k="${k}"]`).value||"").trim();return {name:g("name"),price:g("price"),note:g("note")};}).filter(e=>e.name||e.price||e.note);}
 function openRate(){
-  $("r_perAsset").value=RATE.perAsset;$("r_editAsset").value=RATE.editingPerAsset;$("r_hook").value=RATE.hookPerVariationPerSet;$("r_setSize").value=RATE.setSize;
+  $("r_perAsset").value=RATE.perAsset;$("r_editAsset").value=RATE.editVariation;$("r_hook").value=RATE.hookPerVariationPerSet;$("r_setSize").value=RATE.setSize;
   $("r_travel").value=RATE.travelPerPersonDay;$("r_rush").value=RATE.rush;$("r_mashup").value=RATE.mashup;
   $("r_resize").value=RATE.resize;$("r_wl").value=RATE.whitelistPerHandlePerMonth;
   $("r_minStreet").value=RATE.minAssets.street_interview;$("r_minPod").value=RATE.minAssets.podcast;$("r_minUgc").value=RATE.minAssets.ugc;
@@ -1403,7 +1408,7 @@ function openRate(){
 function closeRate(){$("rateOverlay").classList.remove("show");}
 function saveRateCard(){
   const num=(id,d)=>{const v=parseFloat($(id).value);return isNaN(v)?d:Math.max(0,v);};
-  RATE.perAsset=num("r_perAsset",RATE.perAsset);RATE.editingPerAsset=num("r_editAsset",RATE.editingPerAsset);RATE.hookPerVariationPerSet=num("r_hook",RATE.hookPerVariationPerSet);
+  RATE.perAsset=num("r_perAsset",RATE.perAsset);RATE.editVariation=num("r_editAsset",RATE.editVariation);RATE.hookPerVariationPerSet=num("r_hook",RATE.hookPerVariationPerSet);
   RATE.setSize=Math.max(1,num("r_setSize",RATE.setSize));RATE.travelPerPersonDay=num("r_travel",RATE.travelPerPersonDay);
   RATE.rush=num("r_rush",RATE.rush);RATE.mashup=num("r_mashup",RATE.mashup);RATE.resize=num("r_resize",RATE.resize);
   RATE.whitelistPerHandlePerMonth=num("r_wl",RATE.whitelistPerHandlePerMonth);
