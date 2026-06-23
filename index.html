@@ -71,7 +71,6 @@ a:hover{color:var(--st4);text-decoration:underline}
 .sp-sec{padding:11px 10px;border-bottom:1px solid var(--line)}
 .sp-sec.sp-last{border-bottom:none}
 .sp-lab{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:9px}
-.view-desc{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.5;min-height:18px}
 .seg{display:flex;background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
 .seg-btn{flex:1;background:transparent;border:none;color:var(--muted);font-family:inherit;font-weight:600;font-size:13px;
   padding:7px 0;border-radius:7px;cursor:pointer;transition:.15s}
@@ -160,13 +159,6 @@ body.viewer .editor-only{display:none!important}
 .tick{font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums}
 .meter-pct{position:absolute;bottom:0;transform:translateX(-50%);font-family:"Space Grotesk";font-weight:700;font-size:13.5px;line-height:1;color:var(--st4);transition:left 1.1s cubic-bezier(.22,1,.36,1);white-space:nowrap}
 .meter-pct::after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--st4)}
-.meter-target{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--warn);z-index:2;pointer-events:none;transition:left 1.1s cubic-bezier(.22,1,.36,1)}
-.meter-pace{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:15px;font-size:13px;color:var(--muted);line-height:1.5}
-.meter-pace .dot{width:9px;height:9px;border-radius:50%;background:var(--warn);flex:none;box-shadow:0 0 0 3px rgba(232,193,74,.18)}
-.meter-pace b{color:var(--text);font-weight:600}
-.meter-pace .delta{font-weight:600}
-.meter-pace .delta.under{color:var(--good)}
-.meter-pace .delta.over{color:var(--bad)}
 
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
@@ -226,9 +218,6 @@ body.viewer .editor-only{display:none!important}
 .lg{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
 .lg .sw{width:11px;height:11px;border-radius:3px}
 .lg .sw.line{width:16px;height:3px;border-radius:2px}
-.burn-note{display:none;align-items:flex-start;gap:7px;margin-top:10px;font-size:12px;color:var(--faint);line-height:1.5}
-.burn-note b{color:var(--muted);font-weight:600}
-.burn-note .bn-ic{color:var(--st3);font-size:14px;flex:none;line-height:1.4}
 
 /* Status funnel */
 .funnel{margin-top:10px;display:flex;flex-direction:column;gap:14px}
@@ -316,8 +305,7 @@ tbody tr:hover .row-actions{opacity:1}
 details.ratecard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:16px}
 details.ratecard summary{list-style:none;cursor:pointer;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:15px}
 details.ratecard summary::-webkit-details-marker{display:none}
-.chev{color:var(--st3);font-size:22px;line-height:1;display:inline-block;transform-origin:center;transition:transform .2s,color .2s}
-details.ratecard summary:hover .chev{color:var(--st4)}
+.chev{color:var(--faint);transition:.2s}
 details[open] .chev{transform:rotate(180deg)}
 .rc-body{padding:4px 22px 22px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px 26px}
 .rc-item{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-top:1px solid var(--line)}
@@ -448,7 +436,6 @@ body.previewing .topbar{top:40px}
             <button data-preset="exec" class="seg-btn">Executive</button>
             <button data-preset="delivery" class="seg-btn">Delivery</button>
           </div>
-          <div class="view-desc" id="viewDesc"></div>
           <button class="sp-btn" id="customizeBtn" style="margin-top:8px">Customize cards…</button>
         </div>
         <div class="sp-sec">
@@ -538,9 +525,8 @@ body.previewing .topbar{top:40px}
     </div>
     <div class="meter">
       <div class="meter-head"><div class="meter-pct num" id="meterPct" style="left:0%">0%</div></div>
-      <div class="meter-track"><div class="meter-fill" id="meterFill" style="width:0%"></div><div class="meter-target" id="meterTarget" style="left:0%;display:none"></div></div>
+      <div class="meter-track"><div class="meter-fill" id="meterFill" style="width:0%"></div></div>
       <div class="meter-ticks" id="meterTicks"></div>
-      <div class="meter-pace" id="meterPace"></div>
     </div>
   </section>
 
@@ -564,7 +550,6 @@ body.previewing .topbar{top:40px}
         <span class="lg"><span class="sw line" style="background:var(--faint)"></span>On-pace plan</span>
         <span class="lg hint" id="burnHint">remaining budget</span>
       </div>
-      <div class="burn-note" id="burnQNote" style="display:none"><span class="bn-ic">&#9432;</span><span>Quarters shown are <b>contract quarters</b> — Q1 begins on the contract start date, not calendar Jan–Mar. The burn-down line stays monthly; the shaded bands just group those months into quarters.</span></div>
     </div>
     <div class="panel pacing dcard" data-card="pacing" data-span="narrow">
       <div class="panel-h"><h3>Pacing snapshot</h3></div>
@@ -659,16 +644,17 @@ body.previewing .topbar{top:40px}
     </div>
     <div class="addons-h">Add-ons &amp; services <span class="addons-sub">— priced automatically from the rate card</span></div>
     <div class="frow3">
-      <div class="field"><label>Travel · person-days</label><input type="number" min="0" id="f_travelDays" value="0"><div class="fhint" id="hintTravel">$2,500 per person-day</div></div>
-      <div class="field"><label>Travel costs ($)</label><input type="number" min="0" id="f_travelCosts" value="0"><div class="fhint">Pre-approved flights &amp; hotels (pass-through)</div></div>
+      <div class="field"><label>Edit variations</label><input type="number" min="0" id="f_editVars" value="0"><div class="fhint" id="hintEdit">$250 each — editing / variation work</div></div>
       <div class="field"><label>Hook / CTA variations</label><input type="number" min="0" id="f_hook" value="0"><div class="fhint" id="hintHook">$200 each, per 5-asset set</div></div>
+      <div class="field"><label>Travel · person-days</label><input type="number" min="0" id="f_travelDays" value="0"><div class="fhint" id="hintTravel">$2,500 per person-day</div></div>
     </div>
     <div class="frow3">
+      <div class="field"><label>Travel costs ($)</label><input type="number" min="0" id="f_travelCosts" value="0"><div class="fhint">Pre-approved flights &amp; hotels (pass-through)</div></div>
       <div class="field"><label>Extra mashups</label><input type="number" min="0" id="f_mashups" value="0"><div class="fhint" id="hintMash">$250 each</div></div>
       <div class="field"><label>Resize requests</label><input type="number" min="0" id="f_resizes" value="0"><div class="fhint" id="hintResize">$250 per request</div></div>
-      <div class="field"><label>Rush delivery</label><label class="check"><input type="checkbox" id="f_rush"> 2-week push · +<span id="hintRush">$2,000</span></label></div>
     </div>
-    <div class="frow">
+    <div class="frow3">
+      <div class="field"><label>Rush delivery</label><label class="check"><input type="checkbox" id="f_rush"> 2-week push · +<span id="hintRush">$2,000</span></label></div>
       <div class="field"><label>Whitelisting · handles</label><input type="number" min="0" id="f_wlHandles" value="0"><div class="fhint">Number of creator handles</div></div>
       <div class="field"><label>Whitelisting · months</label><input type="number" min="0" id="f_wlMonths" value="0"><div class="fhint" id="hintWl">$2,000 per handle / month</div></div>
     </div>
@@ -696,8 +682,11 @@ body.previewing .topbar{top:40px}
   <div class="modal-body">
     <p class="fhint" style="margin-bottom:15px">These values drive every dollar on the dashboard — totals, charts and KPIs recalculate the moment you save.</p>
     <div class="addons-h">Pricing</div>
-    <div class="frow3">
+    <div class="frow">
       <div class="field"><label>Per-asset rate ($)</label><input type="number" min="0" id="r_perAsset"><div class="fhint">Street / Podcast / UGC, per video</div></div>
+      <div class="field"><label>Edit variation rate ($)</label><input type="number" min="0" id="r_editAsset"><div class="fhint">per edit variation</div></div>
+    </div>
+    <div class="frow">
       <div class="field"><label>Hook / CTA per variation ($)</label><input type="number" min="0" id="r_hook"><div class="fhint">charged per set of assets</div></div>
       <div class="field"><label>Assets per hook set</label><input type="number" min="1" id="r_setSize"><div class="fhint">e.g. 5 = 1 set covers 5 assets</div></div>
     </div>
@@ -751,7 +740,7 @@ let CONTRACT_END   = "2027-03-31"; // contract end   (YYYY-MM-DD)
 
 
 /* ===== 2) RATE CARD (single source of truth) ===== */
-let RATE = { perAsset:500, minAssets:{street_interview:5,podcast:5,ugc:3,editing:0},
+let RATE = { perAsset:500, editVariation:250, minAssets:{street_interview:5,podcast:5,ugc:3,editing:0},
   hookPerVariationPerSet:200, setSize:5, travelPerPersonDay:2500, rush:2000, mashup:250, resize:250, whitelistPerHandlePerMonth:2000 };
 let rateExtras = [];   // editor-added reference-only rows: {name, price, note}
 let clientLogo = null; // current client logo (data URL or null) — for shared DB save
@@ -772,31 +761,13 @@ async function resolveNow(){
 const fmtDate=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 const todayMarker={id:"todayMarker",afterDatasetsDraw(chart,a,opts){const idx=opts&&opts.idx;if(idx==null||idx<0)return;const x=chart.scales.x.getPixelForValue(idx);const{top,bottom}=chart.chartArea;const ctx=chart.ctx;ctx.save();ctx.beginPath();ctx.setLineDash([4,4]);ctx.lineWidth=1.5;ctx.strokeStyle="rgba(192,192,242,.5)";ctx.moveTo(x,top+12);ctx.lineTo(x,bottom);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#C0C0F2";ctx.font="600 11px Inter, sans-serif";ctx.textAlign="center";ctx.fillText("Today",x,top+4);ctx.restore();}};
 
-// shades + labels each contract quarter (3 contract months) behind the monthly burn-down line
-const quarterBands={id:"quarterBands",beforeDatasetsDraw(chart,a,opts){
-  if(!opts||!opts.show||!opts.quarters||!opts.quarters.length)return;
-  const ctx=chart.ctx; const{top,bottom,left,right}=chart.chartArea; const x=chart.scales.x;
-  const step=(x.getPixelForValue(1)-x.getPixelForValue(0))||(right-left);
-  ctx.save();
-  opts.quarters.forEach((q,i)=>{
-    let x0=Math.max(left,x.getPixelForValue(q.start)-step/2);
-    let x1=Math.min(right,x.getPixelForValue(q.end)+step/2);
-    if(i%2===1){ctx.fillStyle=opts.band;ctx.fillRect(x0,top,x1-x0,bottom-top);}
-    if(i>0){ctx.strokeStyle=opts.line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,top);ctx.lineTo(x0,bottom);ctx.stroke();}
-    ctx.fillStyle=opts.text;ctx.textAlign="center";ctx.textBaseline="bottom";
-    ctx.font="700 11px 'Space Grotesk', Inter, sans-serif";
-    const w=ctx.measureText(q.label).width;
-    ctx.fillText((w>(x1-x0-8))?q.short:q.label,(x0+x1)/2,top-3);
-  });
-  ctx.restore();
-}};
-
 function priceParts(p){
   const assets=+p.assets||0; const out=[]; let base=0;
   if(["street_interview","podcast","ugc"].includes(p.type)){
     const min=RATE.minAssets[p.type]; const billable=assets>0?Math.max(assets,min):0;
     base=billable*RATE.perAsset; if(base) out.push([`${billable} assets × ${fmt(RATE.perAsset)}${billable>assets?` (min ${min})`:""}`,base]);
   }
+  const editv=(+p.editVariations||0)*RATE.editVariation; if(editv){ out.push([`${p.editVariations} edit variation${(+p.editVariations)===1?"":"s"} × ${fmt(RATE.editVariation)}`,editv]); base+=editv; }
   const sets=Math.max(1,Math.ceil(assets/RATE.setSize));
   const hook=(+p.hookVariations||0)*sets*RATE.hookPerVariationPerSet; if(hook) out.push([`${p.hookVariations} hook/CTA × ${sets} set${sets>1?"s":""} × ${fmt(RATE.hookPerVariationPerSet)}`,hook]);
   const travel=(+p.travelDays||0)*RATE.travelPerPersonDay; if(travel) out.push([`${p.travelDays} person-days × ${fmt(RATE.travelPerPersonDay)}`,travel]);
@@ -817,9 +788,9 @@ const SEED=[
   {title:"R2 Street Interviews (12 videos) — Super Bowl",type:"street_interview",status:"completed",assets:12,brief_link:"https://streettalk.notion.site/Street-Interview-Brief",frame_link:"https://f.io/4EwTn2uf",completion_date:"2026-04-12"},
   {title:"R2 Angle 1 (5 videos) — NYC",type:"street_interview",status:"completed",assets:5,frame_link:"https://f.io/4EwTn2uf",completion_date:"2026-04-20"},
   {title:"Editing Credits — 15s Recuts (4 videos)",type:"editing",status:"completed",assets:4,mashups:4,brief_link:"https://docs.google.com/document",frame_link:"https://f.io/bwTppHGM",completion_date:"2026-04-28"},
-  {title:"Editing Credits — NBA Playoffs 26 (4 videos × 3 variations)",type:"editing",status:"completed",assets:4,hookVariations:3,brief_link:"https://docs.google.com/document",frame_link:"https://f.io/d4km2pHn",completion_date:"2026-05-08"},
+  {title:"Editing Credits — NBA Playoffs 26 (4 videos × 3 variations)",type:"editing",status:"completed",assets:4,editVariations:3,brief_link:"https://docs.google.com/document",frame_link:"https://f.io/d4km2pHn",completion_date:"2026-05-08"},
   {title:"Editing Credits — NFL UGC Mashup (16 videos)",type:"editing",status:"completed",assets:16,mashups:1,frame_link:"https://f.io/d4km2pHn",completion_date:"2026-05-22"},
-  {title:"Editing Credits — NYC Relaunch (4 videos × 5 variations)",type:"editing",status:"completed",assets:4,hookVariations:5,frame_link:"https://f.io/d4km2pHn",completion_date:"2026-06-05"}
+  {title:"Editing Credits — NYC Relaunch (4 videos × 5 variations)",type:"editing",status:"completed",assets:4,editVariations:5,frame_link:"https://f.io/d4km2pHn",completion_date:"2026-06-05"}
 ];
 
 /* ===== 4) DATA LAYER ===== */
@@ -838,8 +809,8 @@ async function loadData(){
     state=error?[]:data.map(fromRow); setLive(!error);
   } else { state=SEED.map((s,i)=>({id:"seed-"+i,sort_order:i,...s})); setLive(false); }
 }
-function fromRow(r){return{id:r.id,sort_order:r.sort_order,title:r.title,type:r.type,status:r.status,assets:r.assets,travelDays:r.travel_days,travelCosts:r.travel_costs,hookVariations:r.hook_variations,rush:r.rush,mashups:r.mashups,resizes:r.resizes,whitelistHandles:r.whitelist_handles,whitelistMonths:r.whitelist_months,brief_link:r.brief_link,frame_link:r.frame_link,notes:r.notes,completion_date:r.completion_date};}
-function toRow(p){return{title:p.title,type:p.type,status:p.status,assets:+p.assets||0,travel_days:+p.travelDays||0,travel_costs:+p.travelCosts||0,hook_variations:+p.hookVariations||0,rush:!!p.rush,mashups:+p.mashups||0,resizes:+p.resizes||0,whitelist_handles:+p.whitelistHandles||0,whitelist_months:+p.whitelistMonths||0,total_price:priceOf(p),brief_link:p.brief_link||null,frame_link:p.frame_link||null,notes:p.notes||null,completion_date:p.completion_date||null};}
+function fromRow(r){return{id:r.id,sort_order:r.sort_order,title:r.title,type:r.type,status:r.status,assets:r.assets,travelDays:r.travel_days,travelCosts:r.travel_costs,hookVariations:r.hook_variations,editVariations:r.edit_variations,rush:r.rush,mashups:r.mashups,resizes:r.resizes,whitelistHandles:r.whitelist_handles,whitelistMonths:r.whitelist_months,brief_link:r.brief_link,frame_link:r.frame_link,notes:r.notes,completion_date:r.completion_date};}
+function toRow(p){return{title:p.title,type:p.type,status:p.status,assets:+p.assets||0,travel_days:+p.travelDays||0,travel_costs:+p.travelCosts||0,hook_variations:+p.hookVariations||0,edit_variations:+p.editVariations||0,rush:!!p.rush,mashups:+p.mashups||0,resizes:+p.resizes||0,whitelist_handles:+p.whitelistHandles||0,whitelist_months:+p.whitelistMonths||0,total_price:priceOf(p),brief_link:p.brief_link||null,frame_link:p.frame_link||null,notes:p.notes||null,completion_date:p.completion_date||null};}
 async function saveItem(p){
   if(LIVE){
     const c=await getClient(); let res;
@@ -974,19 +945,6 @@ function renderKPIs(){
   setT("psElapsed",`${elapsed.toFixed(1)} / ${CONTRACT_MONTHS} mo (${(elapsed/CONTRACT_MONTHS*100).toFixed(0)}%)`);
   setT("psProj",`${fmt(runRate)} (${projPct.toFixed(0)}%)`);
 
-  // persistent pro-rata indicator on the hero meter (always visible, regardless of view)
-  const targetPct=Math.max(0,Math.min(100,elapsed/CONTRACT_MONTHS*100));
-  const mp=document.getElementById("meterPace");
-  if(mp){
-    if(NOW<C_START){
-      mp.innerHTML=`<span class="dot"></span>Contract starts ${fmtDate(C_START)} — pacing target begins then.`;
-    } else {
-      const dCls=variance<=0?"under":"over";
-      const dTxt=variance<=0?`${fmt(Math.abs(variance))} below plan`:`${fmt(variance)} above plan`;
-      mp.innerHTML=`<span class="dot"></span>On-pace target today: <b>${fmt(onPaceTarget)}</b> (${targetPct.toFixed(0)}% of term elapsed) · committed <b>${fmt(committed)}</b> · <span class="delta ${dCls}">${dTxt}</span>`;
-    }
-  }
-
   const chip=document.getElementById("paceChip");
   if(underBy>=0){chip.className="pace-chip";chip.innerHTML=`On pace to use ${fmt(runRate)} (${projPct.toFixed(0)}%) — strong runway remaining`;}
   else{chip.className="pace-chip over";chip.innerHTML=`Trending ${fmt(-underBy)} over budget at current pace`;}
@@ -999,7 +957,7 @@ function renderKPIs(){
     } else pa.style.display="none";
   }
 
-  requestAnimationFrame(()=>{document.getElementById("meterFill").style.width=pct+"%";const m=document.getElementById("meterPct");m.style.left=Math.max(6,Math.min(94,pct))+"%";m.textContent=pct.toFixed(1)+"% used";const tg=document.getElementById("meterTarget");if(tg){tg.style.display=(NOW>=C_START)?"":"none";tg.style.left=Math.max(0,Math.min(100,targetPct))+"%";}});
+  requestAnimationFrame(()=>{document.getElementById("meterFill").style.width=pct+"%";const m=document.getElementById("meterPct");m.style.left=Math.max(6,Math.min(94,pct))+"%";m.textContent=pct.toFixed(1)+"% used";});
 }
 
 function statusLabel(s){return({planned:"Planned",shooting:"Shooting",editing:"Editing",completed:"Completed"})[s]||s;}
@@ -1013,6 +971,7 @@ function campaignOf(p){const t=(p.title||"").toLowerCase();for(const c of CAMPAI
 function scopeTags(p){
   const out=[];
   if((+p.travelDays||0)>0||(+p.travelCosts||0)>0) out.push(["✈ Travel","scope"]);
+  if((+p.editVariations||0)>0) out.push([`Variations ×${+p.editVariations}`,"scope"]);
   if((+p.hookVariations||0)>0) out.push([`Hooks ×${+p.hookVariations}`,"scope"]);
   if((+p.mashups||0)>0) out.push([`Mashups ×${+p.mashups}`,"scope"]);
   if((+p.resizes||0)>0) out.push([`Resizes ×${+p.resizes}`,"scope"]);
@@ -1078,41 +1037,32 @@ function renderCharts(){
   const monthly=Array(CONTRACT_MONTHS).fill(0);
   state.forEach(p=>{monthly[monthIndexOf(p)]+=priceOf(p);});
   const nowOff=cOffset(NOW); const inTerm=nowOff>=0&&nowOff<CONTRACT_MONTHS;
-  let labels,buckets,cutIdx,markerIdx,units,quarters=[];
-  units=CONTRACT_MONTHS; buckets=monthly; labels=MONTHS;     // burn-down is always charted at monthly resolution
-  markerIdx=inTerm?Math.max(0,Math.min(CONTRACT_MONTHS-1,nowOff)):-1;
-  cutIdx=nowOff<0?-1:Math.max(0,Math.min(CONTRACT_MONTHS-1,nowOff));
+  let labels,buckets,cutIdx,markerIdx,units;
   if(burnGran==="quarter"){
-    const nq=Math.ceil(CONTRACT_MONTHS/3);
-    quarters=Array.from({length:nq},(_,q)=>{
-      const start=q*3, end=Math.min(CONTRACT_MONTHS-1,q*3+2);
-      const sd=new Date(C_START);sd.setMonth(sd.getMonth()+start);
-      const ed=new Date(C_START);ed.setMonth(ed.getMonth()+end);
-      const range=`${sd.toLocaleDateString("en-US",{month:"short"})}–${ed.toLocaleDateString("en-US",{month:"short"})}`;
-      return {start,end,label:`Q${q+1} · ${range}`,short:`Q${q+1}`};
-    });
+    const nq=Math.ceil(CONTRACT_MONTHS/3); units=nq;
+    buckets=Array(nq).fill(0); monthly.forEach((v,i)=>buckets[Math.floor(i/3)]+=v);
+    labels=Array.from({length:nq},(_,q)=>{const sd=new Date(C_START);sd.setMonth(sd.getMonth()+q*3);const ed=new Date(C_START);ed.setMonth(ed.getMonth()+Math.min(CONTRACT_MONTHS-1,q*3+2));return `Q${q+1} · ${sd.toLocaleDateString("en-US",{month:"short"})}–${ed.toLocaleDateString("en-US",{month:"short"})}`;});
+    const nowQ=Math.floor(nowOff/3); markerIdx=inTerm?Math.min(nq-1,nowQ):-1; cutIdx=nowOff<0?-1:Math.min(nq-1,nowQ);
+  } else {
+    units=CONTRACT_MONTHS; buckets=monthly; labels=MONTHS;
+    markerIdx=inTerm?Math.max(0,Math.min(CONTRACT_MONTHS-1,nowOff)):-1; cutIdx=nowOff<0?-1:Math.max(0,Math.min(CONTRACT_MONTHS-1,nowOff));
   }
   let cum=0; const remain=buckets.map(m=>{cum+=m;return ANNUAL_BUDGET-cum;});
   const actualSeries=remain.map((v,i)=>i<=cutIdx?v:null);
   const ideal=labels.map((_,i)=>ANNUAL_BUDGET-ANNUAL_BUDGET*((i+1)/units));
   const bh=document.getElementById("burnHint"); if(bh) bh.textContent=`as of ${fmtDate(NOW)}`;
-  const qn=document.getElementById("burnQNote"); if(qn) qn.style.display=burnGran==="quarter"?"flex":"none";
-  charts.burn=new Chart(document.getElementById("burnChart"),{type:"line",plugins:[quarterBands,todayMarker],
+  charts.burn=new Chart(document.getElementById("burnChart"),{type:"line",plugins:[todayMarker],
     data:{labels,datasets:[
       {label:"Budget remaining (actual)",data:actualSeries,borderColor:"#6B6BE0",backgroundColor:"rgba(107,107,224,.12)",fill:true,tension:.25,borderWidth:3,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:"#9696E9",spanGaps:false},
       {label:"On-pace plan",data:ideal,borderColor:T.tick,borderDash:[6,5],borderWidth:1.5,pointRadius:0,pointHoverRadius:5,fill:false,tension:0}
     ]},
     options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},hover:{mode:"index",intersect:false},
-      layout:{padding:{top:burnGran==="quarter"?18:0}},
       plugins:{legend:{display:false},todayMarker:{idx:markerIdx},
-        quarterBands:{show:burnGran==="quarter",quarters,band:"rgba(107,107,224,.07)",line:T.grid,text:T.tick},
         tooltip:{mode:"index",intersect:false,padding:11,titleFont:{family:"Space Grotesk",weight:"700"},
           callbacks:{
             title:items=>items.length?items[0].label:"",
             label:c=>c.raw==null?null:` ${c.dataset.label}: ${fmt(c.raw)}`,
-            afterBody:items=>{const i=items[0].dataIndex;
-              if(burnGran==="quarter"){const q=Math.floor(i/3),qs=q*3,qe=Math.min(CONTRACT_MONTHS-1,q*3+2);let qt=0;for(let m=qs;m<=qe;m++)qt+=monthly[m];return `Q${q+1} committed (full quarter): ${fmt(qt)}`;}
-              return `Committed this month: ${fmt(buckets[i])}`;}
+            afterBody:items=>{const i=items[0].dataIndex; return `Committed this ${burnGran==="quarter"?"quarter":"month"}: ${fmt(buckets[i])}`;}
           }}},
       scales:{x:{grid:{color:T.grid},ticks:{color:T.tick,font:CHART_FONT}},
         y:{grid:{color:T.grid},ticks:{color:T.tick,font:CHART_FONT,callback:v=>fmtK(v)},min:0,max:ANNUAL_BUDGET}}}
@@ -1169,28 +1119,29 @@ function renderRecent(){
 
 /* ===== 6) MODAL ===== */
 let editing=null; const $=id=>document.getElementById(id);
-function readForm(){return{id:editing?editing.id:null,title:$("f_title").value.trim()||"Untitled line item",type:$("f_type").value,status:$("f_status").value,assets:$("f_assets").value,travelDays:$("f_travelDays").value,travelCosts:$("f_travelCosts").value,hookVariations:$("f_hook").value,rush:$("f_rush").checked,mashups:$("f_mashups").value,resizes:$("f_resizes").value,whitelistHandles:$("f_wlHandles").value,whitelistMonths:$("f_wlMonths").value,brief_link:$("f_brief").value.trim(),frame_link:$("f_frame").value.trim(),notes:$("f_notes").value.trim(),completion_date:$("f_date").value||null};}
+function readForm(){return{id:editing?editing.id:null,title:$("f_title").value.trim()||"Untitled line item",type:$("f_type").value,status:$("f_status").value,assets:$("f_assets").value,travelDays:$("f_travelDays").value,travelCosts:$("f_travelCosts").value,hookVariations:$("f_hook").value,editVariations:$("f_editVars").value,rush:$("f_rush").checked,mashups:$("f_mashups").value,resizes:$("f_resizes").value,whitelistHandles:$("f_wlHandles").value,whitelistMonths:$("f_wlMonths").value,brief_link:$("f_brief").value.trim(),frame_link:$("f_frame").value.trim(),notes:$("f_notes").value.trim(),completion_date:$("f_date").value||null};}
 function updateRateHints(){
   const t=$("f_type").value, a=+$("f_assets").value||0;
   const billable=["street_interview","podcast","ugc"].includes(t);
+  const isEditing=t==="editing";
   const min=RATE.minAssets[t]||0, pa=RATE.perAsset;
   const rb=$("rateBanner");
   if(rb) rb.innerHTML=billable
     ? `<span class="rb-dot"></span><span>${CATEGORY_LABEL[t]} · <b>${fmt(pa)}</b> per asset · <b>${min}</b>-asset minimum per item</span>`
-    : `<span class="rb-dot"></span><span><b>Editing / Variations</b> · no per-asset fee — billed via hooks, mashups &amp; resizes below</span>`;
-  const al=$("assetsLabel"); if(al) al.textContent=billable?`Assets (videos) — ${fmt(pa)} each`:"Assets / variations (videos)";
+    : `<span class="rb-dot"></span><span><b>Editing / Variations</b> · videos count toward delivery — price the work with <b>Edit variations</b> &amp; add-ons below</span>`;
+  const al=$("assetsLabel"); if(al) al.textContent=billable?`Assets (videos) — ${fmt(pa)} each`:`Videos delivered`;
   const ah=$("assetsHint");
   if(ah){
     if(billable){
       const eff=a>0?Math.max(a,min):0;
       ah.textContent = (a>0&&a<min) ? `Below the ${min}-asset minimum — billed as ${fmt(min*pa)}` : `${eff} asset${eff===1?"":"s"} × ${fmt(pa)} = ${fmt(eff*pa)}`;
-    } else ah.textContent="Counts toward assets delivered — not billed per asset.";
+    } else ah.textContent="Counts toward assets delivered — priced via Edit variations & add-ons below.";
   }
 }
 function updatePreview(){updateRateHints();const bd=priceParts(readForm());$("ppTotal").textContent=fmt(bd.total);$("ppBreakdown").innerHTML=bd.items.length?bd.items.map(([l,v])=>`<div class="pp-row"><span>${l}</span><span class="num">${fmt(v)}</span></div>`).join(""):`<div class="pp-row"><span>Enter assets or add-ons to price this item</span><span></span></div>`;}
-function openEdit(p){editing=p||null;$("modalTitle").textContent=p?"Edit line item":"Add line item";$("deleteBtn").style.visibility=p?"visible":"hidden";const v=p||{type:"street_interview",status:"planned"};$("f_title").value=v.title||"";$("f_type").value=v.type||"street_interview";$("f_status").value=v.status||"planned";$("f_assets").value=v.assets||0;$("f_travelDays").value=v.travelDays||0;$("f_travelCosts").value=v.travelCosts||0;$("f_hook").value=v.hookVariations||0;$("f_rush").checked=!!v.rush;$("f_mashups").value=v.mashups||0;$("f_resizes").value=v.resizes||0;$("f_wlHandles").value=v.whitelistHandles||0;$("f_wlMonths").value=v.whitelistMonths||0;$("f_brief").value=v.brief_link||"";$("f_frame").value=v.frame_link||"";$("f_notes").value=v.notes||"";$("f_date").value=v.completion_date||"";updatePreview();$("editOverlay").classList.add("show");}
+function openEdit(p){editing=p||null;$("modalTitle").textContent=p?"Edit line item":"Add line item";$("deleteBtn").style.visibility=p?"visible":"hidden";const v=p||{type:"street_interview",status:"planned"};$("f_title").value=v.title||"";$("f_type").value=v.type||"street_interview";$("f_status").value=v.status||"planned";$("f_assets").value=v.assets||0;$("f_travelDays").value=v.travelDays||0;$("f_travelCosts").value=v.travelCosts||0;$("f_hook").value=v.hookVariations||0;$("f_editVars").value=v.editVariations||0;$("f_rush").checked=!!v.rush;$("f_mashups").value=v.mashups||0;$("f_resizes").value=v.resizes||0;$("f_wlHandles").value=v.whitelistHandles||0;$("f_wlMonths").value=v.whitelistMonths||0;$("f_brief").value=v.brief_link||"";$("f_frame").value=v.frame_link||"";$("f_notes").value=v.notes||"";$("f_date").value=v.completion_date||"";updatePreview();$("editOverlay").classList.add("show");}
 function closeEdit(){$("editOverlay").classList.remove("show");editing=null;}
-["f_title","f_type","f_status","f_assets","f_travelDays","f_travelCosts","f_hook","f_rush","f_mashups","f_resizes","f_wlHandles","f_wlMonths"].forEach(id=>{const el=$(id);el.addEventListener("input",updatePreview);el.addEventListener("change",updatePreview);});
+["f_title","f_type","f_status","f_assets","f_travelDays","f_travelCosts","f_hook","f_editVars","f_rush","f_mashups","f_resizes","f_wlHandles","f_wlMonths"].forEach(id=>{const el=$(id);el.addEventListener("input",updatePreview);el.addEventListener("change",updatePreview);});
 $("addBtn").onclick=()=>openEdit(null);$("closeEdit").onclick=closeEdit;$("cancelEdit").onclick=closeEdit;
 $("editOverlay").onclick=e=>{if(e.target.id==="editOverlay")closeEdit();};
 $("saveEdit").onclick=async()=>{await saveItem(readForm());closeEdit();};
@@ -1218,8 +1169,8 @@ document.querySelectorAll("#burnSeg button").forEach(b=>b.onclick=()=>{burnGran=
 
 /* ----- export ----- */
 function exportCSV(){
-  const cols=["Title","Category","Status","Assets","Travel days","Travel costs","Hook/CTA variations","Rush","Extra mashups","Resize requests","Whitelist handles","Whitelist months","Total","Brief link","Frame link","Completion date","Notes"];
-  const rows=state.map(p=>[p.title,CATEGORY_LABEL[p.type]||p.type,statusLabel(p.status),p.assets||0,p.travelDays||0,p.travelCosts||0,p.hookVariations||0,p.rush?"Yes":"No",p.mashups||0,p.resizes||0,p.whitelistHandles||0,p.whitelistMonths||0,priceOf(p),p.brief_link||"",p.frame_link||"",p.completion_date||"",p.notes||""]);
+  const cols=["Title","Category","Status","Assets","Travel days","Travel costs","Hook/CTA variations","Edit variations","Rush","Extra mashups","Resize requests","Whitelist handles","Whitelist months","Total","Brief link","Frame link","Completion date","Notes"];
+  const rows=state.map(p=>[p.title,CATEGORY_LABEL[p.type]||p.type,statusLabel(p.status),p.assets||0,p.travelDays||0,p.travelCosts||0,p.hookVariations||0,p.editVariations||0,p.rush?"Yes":"No",p.mashups||0,p.resizes||0,p.whitelistHandles||0,p.whitelistMonths||0,priceOf(p),p.brief_link||"",p.frame_link||"",p.completion_date||"",p.notes||""]);
   const q=v=>{v=String(v==null?"":v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
   const csv=[cols].concat(rows).map(r=>r.map(q).join(",")).join("\r\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
@@ -1240,7 +1191,7 @@ function buildBackup(){
     settings:{ budget:ANNUAL_BUDGET, contract_start:CONTRACT_START, contract_end:CONTRACT_END,
       client_name:CLIENT_NAME, logo:clientLogo||null, rate:RATE, rate_extras:rateExtras },
     items: state.map(p=>({ title:p.title, type:p.type, status:p.status, assets:+p.assets||0,
-      travelDays:+p.travelDays||0, travelCosts:+p.travelCosts||0, hookVariations:+p.hookVariations||0,
+      travelDays:+p.travelDays||0, travelCosts:+p.travelCosts||0, hookVariations:+p.hookVariations||0, editVariations:+p.editVariations||0,
       rush:!!p.rush, mashups:+p.mashups||0, resizes:+p.resizes||0, whitelistHandles:+p.whitelistHandles||0,
       whitelistMonths:+p.whitelistMonths||0, brief_link:p.brief_link||null, frame_link:p.frame_link||null,
       notes:p.notes||null, completion_date:p.completion_date||null })) };
@@ -1411,6 +1362,7 @@ function renderRateCard(){
     ["Street Interview Ad",`${fmt(RATE.perAsset)} / asset`,`${m.street_interview} asset min per angle`],
     ["Podcast Ad",`${fmt(RATE.perAsset)} / asset`,`${m.podcast} asset min per shoot`],
     ["UGC Ad",`${fmt(RATE.perAsset)} / asset`,`${m.ugc} asset min per creator`],
+    ["Editing / Variations",`${fmt(RATE.editVariation)} / variation`,"video edits, recuts & variations"],
     ["Travel Fee",`${fmt(RATE.travelPerPersonDay)} / person / day`,"+ pre-approved flights & hotels"],
     ["Hook / CTA Variations",`${fmt(RATE.hookPerVariationPerSet)} / variation`,`per set of ${RATE.setSize} assets`],
     ["Rush Fee",`${fmt(RATE.rush)}`,"2-week push (timely approvals)"],
@@ -1426,6 +1378,7 @@ function refreshRateUI(){
   const set=(id,txt)=>{const el=document.getElementById(id);if(el)el.textContent=txt;};
   set("hintTravel",`${fmt(RATE.travelPerPersonDay)} per person-day`);
   set("hintHook",`${fmt(RATE.hookPerVariationPerSet)} each, per ${RATE.setSize}-asset set`);
+  set("hintEdit",`${fmt(RATE.editVariation)} each — editing / variation work`);
   set("hintMash",`${fmt(RATE.mashup)} each`);
   set("hintResize",`${fmt(RATE.resize)} per request`);
   set("hintRush",`${fmt(RATE.rush)}`);
@@ -1443,7 +1396,7 @@ function rateRowHTML(e,i){return `<div class="frow3 rate-extra" data-i="${i}">
 function renderRateExtras(){const w=document.getElementById("rateExtrasWrap");w.innerHTML=rateExtras.length?rateExtras.map(rateRowHTML).join(""):`<div class="fhint">No extra lines yet — add one to document a service the auto-calculator doesn't cover.</div>`;}
 function collectExtras(){return [...document.querySelectorAll("#rateExtrasWrap .rate-extra")].map(r=>{const g=k=>(r.querySelector(`[data-k="${k}"]`).value||"").trim();return {name:g("name"),price:g("price"),note:g("note")};}).filter(e=>e.name||e.price||e.note);}
 function openRate(){
-  $("r_perAsset").value=RATE.perAsset;$("r_hook").value=RATE.hookPerVariationPerSet;$("r_setSize").value=RATE.setSize;
+  $("r_perAsset").value=RATE.perAsset;$("r_editAsset").value=RATE.editVariation;$("r_hook").value=RATE.hookPerVariationPerSet;$("r_setSize").value=RATE.setSize;
   $("r_travel").value=RATE.travelPerPersonDay;$("r_rush").value=RATE.rush;$("r_mashup").value=RATE.mashup;
   $("r_resize").value=RATE.resize;$("r_wl").value=RATE.whitelistPerHandlePerMonth;
   $("r_minStreet").value=RATE.minAssets.street_interview;$("r_minPod").value=RATE.minAssets.podcast;$("r_minUgc").value=RATE.minAssets.ugc;
@@ -1452,7 +1405,7 @@ function openRate(){
 function closeRate(){$("rateOverlay").classList.remove("show");}
 function saveRateCard(){
   const num=(id,d)=>{const v=parseFloat($(id).value);return isNaN(v)?d:Math.max(0,v);};
-  RATE.perAsset=num("r_perAsset",RATE.perAsset);RATE.hookPerVariationPerSet=num("r_hook",RATE.hookPerVariationPerSet);
+  RATE.perAsset=num("r_perAsset",RATE.perAsset);RATE.editVariation=num("r_editAsset",RATE.editVariation);RATE.hookPerVariationPerSet=num("r_hook",RATE.hookPerVariationPerSet);
   RATE.setSize=Math.max(1,num("r_setSize",RATE.setSize));RATE.travelPerPersonDay=num("r_travel",RATE.travelPerPersonDay);
   RATE.rush=num("r_rush",RATE.rush);RATE.mashup=num("r_mashup",RATE.mashup);RATE.resize=num("r_resize",RATE.resize);
   RATE.whitelistPerHandlePerMonth=num("r_wl",RATE.whitelistPerHandlePerMonth);
@@ -1485,7 +1438,6 @@ $("exitPreview").onclick=()=>setPreview(false);
 const CARDS=[["kpis","Key metrics"],["burn","Budget burn-down"],["pacing","Pacing snapshot"],["cat","Spend by category"],["mix","Production vs add-ons"],["month","Monthly delivered"],["funnel","Status funnel"],["bar","Spend by line item"],["recent","Recently delivered"],["tracker","Project tracker"]];
 const ALL_IDS=CARDS.map(c=>c[0]); const CARD_NAME=Object.fromEntries(CARDS);
 const PRESETS={full:ALL_IDS.slice(),exec:["kpis","burn","pacing","cat","mix","tracker"],delivery:["kpis","month","funnel","bar","recent","tracker"]};
-const VIEW_DESC={full:"Everything — all metrics, every chart, and the full tracker.",exec:"Budget lens — spend, pacing and category mix for a fast health read.",delivery:"Delivery lens — output, pipeline and recently shipped work.",_custom:"Custom — your own card selection (set in “Customize cards”)."};
 let layout={order:ALL_IDS.slice(),hidden:[]};
 function persistLayout(){try{localStorage.setItem("st_layout",JSON.stringify(layout));}catch(_){}}
 function normalizeLayout(){
@@ -1500,7 +1452,7 @@ function applyLayout(){
   markPreset();
 }
 function detectPreset(){const vis=layout.order.filter(id=>!layout.hidden.includes(id));for(const k in PRESETS){const s=PRESETS[k];if(vis.length===s.length&&vis.every((id,i)=>id===s[i]))return k;}return null;}
-function markPreset(){const k=detectPreset();document.querySelectorAll("#presetSeg .seg-btn").forEach(b=>b.classList.toggle("active",b.dataset.preset===k));const vd=document.getElementById("viewDesc");if(vd)vd.textContent=VIEW_DESC[k]||VIEW_DESC._custom;}
+function markPreset(){const k=detectPreset();document.querySelectorAll("#presetSeg .seg-btn").forEach(b=>b.classList.toggle("active",b.dataset.preset===k));}
 function applyPreset(key){const s=PRESETS[key]; if(!s)return; layout={order:s.concat(ALL_IDS.filter(id=>!s.includes(id))),hidden:ALL_IDS.filter(id=>!s.includes(id))}; persistLayout(); applyLayout(); renderAll();}
 function renderLayoutList(){
   document.getElementById("layoutList").innerHTML=layout.order.map(id=>{
